@@ -12,7 +12,7 @@ int main(int argc, char **argv)
 	{
 		int port = std::atoi(argv[1]);
 		std::string password = argv[2];
-		Server server(port, password, true); // Enable debug mode with 'true'
+		Server server(port, password);
 		server.run();
 	}
 	catch (const std::exception &e)

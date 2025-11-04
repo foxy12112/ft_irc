@@ -25,13 +25,12 @@ class Server
 		int _sock_fd;
 		int _port;
 		std::string _password;
-		bool _debug_mode; // To allow \n for testing
 
 		void createSocket();
 		void bindAndListen();
 
 	public:
-		Server(int port, const std::string &password, bool debug_mode = false);
+		Server(int port, const std::string &password);
 		~Server();
 		void run();
 
