@@ -13,7 +13,7 @@ int main(int argc, char **argv)
 		int port = std::atoi(argv[1]);
 		std::string password = argv[2];
 		Server server(port, password);
-		// server.run(); // Uncomment this line when the run method is implemented
+		server.run();
 	}
 	catch (const std::exception &e)
 	{
