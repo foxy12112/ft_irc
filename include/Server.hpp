@@ -34,6 +34,16 @@ class Server
 		Server(int port, const std::string &password, bool debug_mode = false);
 		~Server();
 		void run();
+
+	struct Client
+	{
+		std::string buffer;
+		bool authenticated;
+		Client() : authenticated(false) {} // Sets authenticated to false by default
+	};
+
+	private:
+		std::map<int, Client> _clients; // Map of client FDs to Client data
 };
 
 #endif
