@@ -200,7 +200,7 @@ void Server::run()
 								std::string channel = cmd.substr(5);
 								std::string oldChannel = cli.getChannel();
 								for (int i = 0; i < (int)_channels.size(); i++)
-									if (_channels[i].getName() == channel)
+									if (_channels[i].getName() == channel && _channels[i].getInvite() == false)
 										cli.setChannel(channel);
 								if (oldChannel != cli.getChannel())
 									resp = "Channel changed succesfully\r\n";
@@ -208,20 +208,22 @@ void Server::run()
 									resp = "Channel change failed\r\n";
 								cli.setMsgType(0);
 							}
+							else if (cmd.find("INVITE ") == 0)
+							{
+								std::string user = cmd.substr(7);
+								
+							}
 							else if (cmd.find("WHISPER ") == 0)
 							{
-								// format: WHISPER <target> <message...>
 								std::size_t pos = cmd.find(' ', 8);
 								if (pos != std::string::npos)
 								{
-									// assign to the outer-scope variable so routing code can see it
 									privateMessageClient = cmd.substr(8, pos - 8);
 									std::string message = cmd.substr(pos + 1);
 									resp = message + "\r\n";
 								}
 								else
 								{
-									// no message part, treat the rest as target (no-op message)
 									privateMessageClient = cmd.substr(8);
 									resp = "\r\n";
 								}
