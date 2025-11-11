@@ -32,6 +32,7 @@ private:
     bool        _isAuthenticated;
     bool        _isConnected;
 	bool		_isOp;
+    int         msgType; //0 for command, 1 for message, 2 for whisper
     std::string _channel;
 
 public:
@@ -45,17 +46,18 @@ public:
     void setAuthenticated(bool v);
 	bool isOp() const;
 	void setOp(bool v);
-
+    void setMsgType(int type){this->msgType = type;}
+    int  getMsgType(void){return this->msgType;}
     std::string getChannel(void){return this->_channel;}
     void        setChannel(std::string channel){this->_channel = channel;}
     bool isConnected() const;
     void disconnect();
-    int receive();
+    int receive(Client Sender);
     bool extractNextCommand(std::string &cmd);
     void queueResponse(const std::string &resp);
     bool flushSend();
     bool hasDataToSend() const;
-
+    int getFd(void){return this->_clientFD;}
     const std::string& nickname() const;
 	void setNickname(const std::string &nick);
     const std::string& username() const;

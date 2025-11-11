@@ -85,7 +85,8 @@ void Server::run()
 	std::vector<struct pollfd> fds(1);
 	fds[0].fd = _sock_fd;
 	fds[0].events = POLLIN;
-
+	std::string privateMessageClient;
+	createChannel();
 	while (true) // Main server loop
 	{
 		if (poll(&fds[0], fds.size(), -1) < 0) // If poll fails
@@ -113,7 +114,7 @@ void Server::run()
 				else
 				{
 					Client &cli = _clients[fds[i].fd];
-					int bytes = cli.receive();
+					int bytes = cli.receive(_clients[fds[i].fd]);
 					if (bytes <= 0 && !cli.isConnected())
 					{
 						std::cout << "Client fd=" << fds[i].fd << " disconnected" << std::endl; // DEBUG to be removed
@@ -136,7 +137,6 @@ void Server::run()
 							std::string pass = cmd.substr(6);
 							if (pass == "im_op-"+_password)
 							{
-								cli.setAuthenticated(true);
 								cli.setOp(true);
 								resp = ":server 001 nick :Welcome to the IRC server as operator\r\n";
 							}
@@ -148,16 +148,31 @@ void Server::run()
 							std::string pass = cmd.substr(5);
 							if (pass == _password)
 							{
-								cli.setAuthenticated(true);
 								resp = ":server 001 nick :Welcome to the IRC server\r\n";
 							}
 							else
 								resp = ":server 464 :Password incorrect\r\n";
 						}
-						else if (cli.isAuthenticated())
+						else if (cli.username().empty())
 						{
+							if (cmd.find("USER ") == 0)
+							{
+								std::string user = cmd.substr(5);
+								cli.setUsername(user);
+								resp = "welcome to the IRC server " + user + "\r\n";
+								cli.setAuthenticated(true);
+							}
+							else
+								resp = ":server 464 : Please set username\tusage \"USER (username)\"";
+						}
+						else if (cli.isAuthenticated() && !cli.username().empty())
+						{
+							cli.setMsgType(1);
 							if (cmd == "PING")
+							{
 								resp = "PONG\r\n";
+								cli.setMsgType(0);
+							}
 							else if (cmd.find("NICK ") == 0)
 							{
 								std::string nick = cmd.substr(5);
@@ -169,9 +184,13 @@ void Server::run()
 								std::string user = cmd.substr(5);
 								cli.setUsername(user);
 								resp = ":server 002 " + user + " :User set\r\n";
+								cli.setMsgType(0);
 							}
 							else if (cmd.find("LIST_CMD ") == 0)
+							{
 								resp = "NICK | set nickname\nUSER | set username\nLIST_CMD | list commands\nLIST_USER | list users\nLIST_CHANNELS | lists channels\r\n";
+								cli.setMsgType(0);
+							}
 							else if (cmd.find("LIST_USER ") == 0)
 							{
 								resp = ":server 353 * :";
@@ -181,15 +200,37 @@ void Server::run()
 										resp.append(_clients[i].username()+"	|	"+_clients[i].nickname()+"\n");
 								}
 								resp.append("\r\n");
+								cli.setMsgType(0);
 							}
 							else if (cmd.find("LIST_CHANNELS ") == 0)
 							{
-								resp = "NAME			|	TOPIC";
-								for (int i = 0; i < this->_channels.size(); i++)
+								resp = "NAME			|	TOPIC\n";
+								for (int i = 0; i < (int)this->_channels.size(); i++)
 								{
 									resp.append(_channels[i].getName()+"	|	"+_channels[i].getTopic()+"\n");
 								}
-								resp += "\r\n:server 366 * :End of names\r\n";
+								resp.append("\r\n");
+								cli.setMsgType(0);
+							}
+							else if (cmd.find("JOIN ") == 0)
+							{
+								std::string channel = cmd.substr(5);
+								std::string oldChannel = cli.getChannel();
+								for (int i = 0; i < (int)_channels.size(); i++)
+									if (_channels[i].getName() == channel)
+										cli.setChannel(channel);
+								if (oldChannel != cli.getChannel())
+									resp = "Channel changed succesfully\r\n";
+								else
+									resp = "Channel change failed\r\n";
+								cli.setMsgType(0);
+							}
+							else if (cmd.find("WHISPER ") == 0)
+							{
+								int pos = cmd.find(" ", 8);
+								std::string privateMessageClient = cmd.substr(8, pos);
+								std::string message = cmd.substr(8 + pos);
+								resp = message + "\r\n";
 							}
 							else if (!cmd.empty())
 								resp = ":server 421 :" + cmd + " :Unknown command\r\n";
@@ -197,7 +238,23 @@ void Server::run()
 						else
 							resp = ":server 464 : Authenticate first\r\n";
 						if (!resp.empty())
-							cli.queueResponse(resp);
+						{
+							//add check for command or message
+							if (cli.getMsgType() == 1)
+								for (int i = 0; i < (int)_clients.size(); i++)
+								{
+									if (_clients[i].getFd() != cli.getFd() && _clients[i].getChannel() == cli.getChannel())
+										_clients[i].queueResponse(resp);
+								}
+							else if (cli.getMsgType() == 2)
+							{
+								for (int i = 0; i < (int)_clients.size(); i++)
+									if (_clients[i].username() == privateMessageClient)
+										_clients[i].queueResponse(resp);
+							}
+							else if (cli.getMsgType() == 0)
+								cli.queueResponse(resp);
+						}
 					}
 				}
 			}

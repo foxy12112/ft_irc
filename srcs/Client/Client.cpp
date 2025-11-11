@@ -67,25 +67,29 @@ void Client::disconnect()
 	_isConnected = false;
 }
 
-int Client::receive()
+int Client::receive(Client Sender)
 {
 	if (_clientFD < 0)
 		return -1;
-	char buf[512]; // RFC 1459 recommends max 512 bytes messages
-	ssize_t bytes = recv(_clientFD, buf, sizeof(buf) - 1, 0);
-	if (bytes > 0)
+	if (this->getChannel() == Sender.getChannel())
 	{
-		buf[bytes] = '\0';
-		_inBuffer.append(buf, bytes);
-	}
-	else if (bytes == 0)
-		_isConnected = false;
-	else
-	{
-		if (errno != EAGAIN && errno != EWOULDBLOCK)
+		char buf[1024];
+		ssize_t bytes = recv(_clientFD, buf, sizeof(buf) - 1, 0);
+		if (bytes > 0)
+		{
+			buf[bytes] = '\0';
+			_inBuffer.append(buf, bytes);
+		}
+		else if (bytes == 0)
 			_isConnected = false;
+		else
+		{
+			if (errno != EAGAIN && errno != EWOULDBLOCK)
+				_isConnected = false;
+		}
+		return static_cast<int>(bytes);
 	}
-	return static_cast<int>(bytes);
+	return (0);
 }
 
 bool Client::extractNextCommand(std::string &cmd)
