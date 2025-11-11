@@ -231,10 +231,22 @@ void Server::run()
 							}
 							else if (cmd.find("WHISPER ") == 0)
 							{
-								int pos = cmd.find(" ", 8);
-								std::string privateMessageClient = cmd.substr(8, pos);
-								std::string message = cmd.substr(8 + pos);
-								resp = message + "\r\n";
+								// format: WHISPER <target> <message...>
+								std::size_t pos = cmd.find(' ', 8);
+								if (pos != std::string::npos)
+								{
+									// assign to the outer-scope variable so routing code can see it
+									privateMessageClient = cmd.substr(8, pos - 8);
+									std::string message = cmd.substr(pos + 1);
+									resp = message + "\r\n";
+								}
+								else
+								{
+									// no message part, treat the rest as target (no-op message)
+									privateMessageClient = cmd.substr(8);
+									resp = "\r\n";
+								}
+								cli.setMsgType(2);
 							}
 							else if (!cmd.empty())
 								resp = ":server 421 :" + cmd + " :Unknown command\r\n";
