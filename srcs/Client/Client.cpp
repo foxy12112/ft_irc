@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Client.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: bszikora <bszikora@student.42helbronn.d    +#+  +:+       +#+        */
+/*   By: julcalde <julcalde@student.42heilbronn.    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/09 01:29:09 by bszikora          #+#    #+#             */
-/*   Updated: 2025/11/09 14:48:12 by bszikora         ###   ########.fr       */
+/*   Updated: 2025/11/11 16:04:51 by julcalde         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -70,7 +70,7 @@ int Client::receive()
 {
 	if (_clientFD < 0)
 		return -1;
-	char buf[1024];
+	char buf[512]; // RFC 1459 recommends max 512 bytes messages
 	ssize_t bytes = recv(_clientFD, buf, sizeof(buf) - 1, 0);
 	if (bytes > 0)
 	{

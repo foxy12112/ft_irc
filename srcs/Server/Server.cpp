@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Server.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: bszikora <bszikora@student.42helbronn.d    +#+  +:+       +#+        */
+/*   By: julcalde <julcalde@student.42heilbronn.    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/09 01:29:20 by bszikora          #+#    #+#             */
-/*   Updated: 2025/11/09 02:56:02 by bszikora         ###   ########.fr       */
+/*   Updated: 2025/11/11 15:57:37 by julcalde         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,6 +14,7 @@
 
 Server::Server(int port, const std::string &password) : _sock_fd(-1), _port(port), _password(password)
 {
+	signal(SIGPIPE, SIG_IGN); // Prevents crash on write to closed socket
 	createSocket();
 	bindAndListen();
 }
@@ -51,6 +52,26 @@ void Server::bindAndListen()
 	std::cout << "Listening on port " << _port << std::endl;
 }
 
+std::map<int, Client>& Server::getClients() // Accessor for clients map
+{
+	return (_clients);
+}
+
+const std::string& Server::getPassword() const // Accessor for server password
+{
+	return (_password);
+}
+
+void Server::broadcast(const std::string& msg, int exclude_fd) // Broadcasts a msg to all authenticated clients, except for exclude_fd
+{
+	for (std::map<int, Client>::iterator iter = _clients.begin(); iter != _clients.end(); ++iter)
+	{
+		if (iter->first == exclude_fd || !iter->second.isAuthenticated())
+			continue ;
+		iter->second.queueResponse(msg);
+	}
+}
+
 void Server::run()
 {
 	std::vector<struct pollfd> fds(1);
@@ -72,7 +93,9 @@ void Server::run()
 					struct sockaddr_in addr; // Client address structure
 					socklen_t len = sizeof(addr);
 					int client_fd = accept(_sock_fd, (struct sockaddr*)&addr, &len);
-					std::cout << "Client connected, fd=" << client_fd << std::endl;
+					std::cout << "Client connected, fd=" << client_fd << std::endl; // DEBUG to be removed
+					if (client_fd < 0) // If accept fails
+						continue ;
 					fcntl(client_fd, F_SETFL, O_NONBLOCK); // Set client socket to non-blocking
 					struct pollfd pfd = {client_fd, POLLIN, 0}; // Prepare pollfd for new client
 					fds.push_back(pfd); // Add new client to poll fds
@@ -85,12 +108,12 @@ void Server::run()
 					int bytes = cli.receive();
 					if (bytes <= 0 && !cli.isConnected())
 					{
-						std::cout << "Client fd=" << fds[i].fd << " disconnected" << std::endl;
+						std::cout << "Client fd=" << fds[i].fd << " disconnected" << std::endl; // DEBUG to be removed
 						cli.disconnect();
 						_clients.erase(fds[i].fd);
 						fds.erase(fds.begin() + i);
 						--i;
-						continue;
+						continue ;
 					}
 
 					/* Loop to process complete commands */
@@ -98,7 +121,7 @@ void Server::run()
 					while (cli.extractNextCommand(cmd))
 					{
 						if (cmd.empty())
-							continue;
+							continue ;
 						std::string resp;
 						if (cmd.find("OPASS ") ==  0)
 						{
@@ -131,27 +154,28 @@ void Server::run()
 							{
 								std::string nick = cmd.substr(5);
 								cli.setNickname(nick);
-								resp = "OK NICK\r\n";
+								resp = ":server 001 " + nick + " :Nickname set\r\n";
 							}
 							else if (cmd.find("USER ") == 0)
 							{
 								std::string user = cmd.substr(5);
 								cli.setUsername(user);
-								resp = "OK USER\r\n";
+								resp = ":server 002 " + user + " :User set\r\n";
 							}
 							else if (cmd.find("LIST_CMD ") == 0)
-								resp = "NICK | set nickname\nUSER | set username\nLIST_CMD | list commands\nLIST_USER | list users\r\n";
+								resp = ":server 323 :NICK | USER | LIST_CMD | LIST_USER\r\n";
 							else if (cmd.find("LIST_USER ") == 0)
 							{
-								resp = "USER	|	NICK\n";
-								for (int i = 0; i < (int)_clients.size(); i++)
+								resp = ":server 353 * :";
+								for (std::map<int, Client>::iterator iter = _clients.begin(); iter != _clients.end(); ++iter)
 								{
-									resp.append(_clients[i].username()+"	|	"+_clients[i].nickname()+"\n");
+									if (iter->second.isAuthenticated())
+										resp += iter->second.nickname() + " ";
 								}
-								resp.append("\r\n");
+								resp += "\r\n:server 366 * :End of names\r\n";
 							}
 							else if (!cmd.empty())
-								resp = cmd + "\r\n";
+								resp = ":server 421 :" + cmd + " :Unknown command\r\n";
 						}
 						else
 							resp = ":server 464 : Authenticate first\r\n";
@@ -160,29 +184,27 @@ void Server::run()
 					}
 				}
 			}
-			if (fds[i].revents & POLLOUT)
+			if (fds[i].revents & POLLOUT && fds[i].fd != _sock_fd) // Check for outgoing data
 			{
-				if (fds[i].fd != _sock_fd)
-				{
 					Client &cli = _clients[fds[i].fd];
 					cli.flushSend();
 					if (!cli.isConnected())
 					{
-						std::cout << "Client fd=" << fds[i].fd << " disconnected during send" << std::endl;
+						std::cout << "Client fd=" << fds[i].fd << " disconnected during send" << std::endl; // DEBUG to be removed
+						cli.disconnect(); // Clean up client
 						_clients.erase(fds[i].fd);
 						fds.erase(fds.begin() + i);
 						--i;
-						continue;
+						continue ;
 					}
-				}
 			}
 		}
-
 		// making sure POLLOUT is set only for clients that have pending data
 		for (size_t j = 1; j < fds.size(); ++j)
 		{
 			std::map<int, Client>::iterator it = _clients.find(fds[j].fd);
-			if (it == _clients.end()) continue;
+			if (it == _clients.end())
+				continue ;
 			fds[j].events = POLLIN | (it->second.hasDataToSend() ? POLLOUT : 0);
 		}
 	}

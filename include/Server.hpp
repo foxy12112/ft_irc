@@ -37,6 +37,9 @@ class Server
 		Server(int port, const std::string &password);
 		~Server();
 		void run();
+		std::map<int, Client>& getClients();
+		const std::string& getPassword() const;
+		void broadcast(const std::string& msg, int exclude_fd = -1);
 };
 
 #endif
