@@ -239,13 +239,13 @@ void Server::run()
 								for (int i = 0; i < (int)_clients.size(); i++)
 								{
 									if (_clients[i].getFd() != cli.getFd() && _clients[i].getChannel() == cli.getChannel())
-										_clients[i].queueResponse(resp);
+										_clients[i].queueResponse(cli.username()+": "+resp);
 								}
 							else if (cli.getMsgType() == 2)
 							{
 								for (int i = 0; i < (int)_clients.size(); i++)
 									if (_clients[i].username() == privateMessageClient)
-										_clients[i].queueResponse(resp);
+										_clients[i].queueResponse(cli.username()+": "+resp);
 							}
 							else if (cli.getMsgType() == 0)
 								cli.queueResponse(resp);
