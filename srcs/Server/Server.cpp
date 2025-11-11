@@ -134,7 +134,9 @@ void Server::run()
 						std::string resp;
 						if (cmd.find("OPASS ") ==  0)
 						{
+							cli.setMsgType(0);
 							std::string pass = cmd.substr(6);
+							
 							if (pass == "im_op-"+_password)
 							{
 								cli.setOp(true);
@@ -145,6 +147,7 @@ void Server::run()
 						}
 						else if (cmd.find("PASS ") == 0)
 						{
+							cli.setMsgType(0);
 							std::string pass = cmd.substr(5);
 							if (pass == _password)
 							{
@@ -155,6 +158,7 @@ void Server::run()
 						}
 						else if (cli.username().empty())
 						{
+							cli.setMsgType(0);
 							if (cmd.find("USER ") == 0)
 							{
 								std::string user = cmd.substr(5);
@@ -163,7 +167,7 @@ void Server::run()
 								cli.setAuthenticated(true);
 							}
 							else
-								resp = ":server 464 : Please set username\tusage \"USER (username)\"";
+								resp = ":server 464 : Please set username\tusage \"USER (username)\"\r\n";
 						}
 						else if (cli.isAuthenticated() && !cli.username().empty())
 						{
