@@ -52,6 +52,15 @@ void Server::bindAndListen()
 	std::cout << "Listening on port " << _port << std::endl;
 }
 
+void	Server::createChannel(void)
+{
+	this->_channels[0] = Channel("#General", "idk basic channel ig");
+	this->_channels[1] = Channel("#Coffebreak", "Casual chat for developers, designers, and night owls");
+	this->_channels[2] = Channel("#retrocomputing", "Everything about old PCs, terminals, and vintage OSes");
+	this->_channels[3] = Channel("#Operator channel", "Channel only for operators");
+	this->_channels[4] = Channel("#zenmode", "A calm space for meditation, mindfulness, and philosophy talk");
+}
+
 std::map<int, Client>& Server::getClients() // Accessor for clients map
 {
 	return (_clients);
