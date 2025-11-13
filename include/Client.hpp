@@ -32,6 +32,7 @@ private:
     bool        _isAuthenticated;
     bool        _isConnected;
 	bool		_isOp;
+    std::string _channel;
 
 public:
     Client();
@@ -45,6 +46,8 @@ public:
 	bool isOp() const;
 	void setOp(bool v);
 
+    std::string getChannel(void){return this->_channel;}
+    void        setChannel(std::string channel){this->_channel = channel;}
     bool isConnected() const;
     void disconnect();
     int receive();

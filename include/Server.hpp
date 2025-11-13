@@ -20,6 +20,7 @@
 #include <algorithm>
 #include <arpa/inet.h>
 #include "Client.hpp"
+#include "Channel.hpp"
 
 class Server
 {
@@ -28,10 +29,12 @@ class Server
 		int _port;
 		std::string _password;
 		std::map<int, Client> _clients; // Map of client FDs to Client data
+		std::map<int, Channel> _channels;
 
 
 		void createSocket();
 		void bindAndListen();
+		void createChannel(void);
 
 	public:
 		Server(int port, const std::string &password);

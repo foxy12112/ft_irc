@@ -17,15 +17,15 @@
 #include <cstring>
 
 Client::Client()
-: _clientFD(-1), _inBuffer(), _outBuffer(), _nickname(), _username(), _isAuthenticated(false), _isConnected(false), _isOp(false)
+: _clientFD(-1), _inBuffer(), _outBuffer(), _nickname(), _username(), _isAuthenticated(false), _isConnected(false), _isOp(false), _channel("#General")
 {}
 
 Client::Client(int fd)
-: _clientFD(fd), _inBuffer(), _outBuffer(), _nickname(), _username(), _isAuthenticated(false), _isConnected(true), _isOp(false)
+: _clientFD(fd), _inBuffer(), _outBuffer(), _nickname(), _username(), _isAuthenticated(false), _isConnected(true), _isOp(false), _channel("#General")
 {}
 
 Client::Client(const Client& other)
-: _clientFD(other._clientFD), _inBuffer(other._inBuffer), _outBuffer(other._outBuffer), _nickname(other._nickname), _username(other._username), _isAuthenticated(other._isAuthenticated), _isConnected(other._isConnected), _isOp(other._isOp)
+: _clientFD(other._clientFD), _inBuffer(other._inBuffer), _outBuffer(other._outBuffer), _nickname(other._nickname), _username(other._username), _isAuthenticated(other._isAuthenticated), _isConnected(other._isConnected), _isOp(other._isOp), _channel(other._channel)
 {}
 
 Client& Client::operator=(const Client& other)
@@ -39,6 +39,7 @@ Client& Client::operator=(const Client& other)
 		_username = other._username;
 		_isAuthenticated = other._isAuthenticated;
 		_isConnected = other._isConnected;
+		_channel = other._channel;
 	}
 	return *this;
 }

@@ -71,6 +71,14 @@ void Server::broadcast(const std::string& msg, int exclude_fd) // Broadcasts a m
 		iter->second.queueResponse(msg);
 	}
 }
+void	Server::createChannel(void)
+{
+	this->_channels[0] = Channel("#General", "idk basic channel ig");
+	this->_channels[1] = Channel("#Coffebreak", "Casual chat for developers, designers, and night owls");
+	this->_channels[2] = Channel("#retrocomputing", "Everything about old PCs, terminals, and vintage OSes");
+	this->_channels[3] = Channel("#Operator channel", "Channel only for operators");
+	this->_channels[4] = Channel("#zenmode", "A calm space for meditation, mindfulness, and philosophy talk");
+}
 
 void Server::run()
 {
@@ -163,14 +171,23 @@ void Server::run()
 								resp = ":server 002 " + user + " :User set\r\n";
 							}
 							else if (cmd.find("LIST_CMD ") == 0)
-								resp = ":server 323 :NICK | USER | LIST_CMD | LIST_USER\r\n";
+								resp = "NICK | set nickname\nUSER | set username\nLIST_CMD | list commands\nLIST_USER | list users\nLIST_CHANNELS | lists channels\r\n";
 							else if (cmd.find("LIST_USER ") == 0)
 							{
 								resp = ":server 353 * :";
 								for (std::map<int, Client>::iterator iter = _clients.begin(); iter != _clients.end(); ++iter)
 								{
-									if (iter->second.isAuthenticated())
-										resp += iter->second.nickname() + " ";
+									if (_clients[i].isConnected())
+										resp.append(_clients[i].username()+"	|	"+_clients[i].nickname()+"\n");
+								}
+								resp.append("\r\n");
+							}
+							else if (cmd.find("LIST_CHANNELS ") == 0)
+							{
+								resp = "NAME			|	TOPIC";
+								for (int i = 0; i < this->_channels.size(); i++)
+								{
+									resp.append(_channels[i].getName()+"	|	"+_channels[i].getTopic()+"\n");
 								}
 								resp += "\r\n:server 366 * :End of names\r\n";
 							}
