@@ -71,6 +71,7 @@ void Server::broadcast(const std::string& msg, int exclude_fd) // Broadcasts a m
 		iter->second.queueResponse(msg);
 	}
 }
+
 void	Server::createChannel(void)
 {
 	this->_channels[0] = Channel("#General", "idk basic channel ig");
@@ -78,6 +79,16 @@ void	Server::createChannel(void)
 	this->_channels[2] = Channel("#retrocomputing", "Everything about old PCs, terminals, and vintage OSes");
 	this->_channels[3] = Channel("#Operator channel", "Channel only for operators");
 	this->_channels[4] = Channel("#zenmode", "A calm space for meditation, mindfulness, and philosophy talk");
+}
+
+std::map<int, Client>& Server::getClients() // Accessor for clients map
+{
+	return (_clients);
+}
+
+const std::string& Server::getPassword() const // Accessor for server password
+{
+	return (_password);
 }
 
 void Server::run()
@@ -191,10 +202,7 @@ void Server::run()
 								cli.setMsgType(0);
 							}
 							else if (cmd.find("LIST_CMD ") == 0)
-							{
-								resp = "NICK | set nickname\nUSER | set username\nLIST_CMD | list commands\nLIST_USER | list users\nLIST_CHANNELS | lists channels\r\n";
-								cli.setMsgType(0);
-							}
+								resp = ":server 323 :NICK | USER | LIST_CMD | LIST_USER\r\n";
 							else if (cmd.find("LIST_USER ") == 0)
 							{
 								resp = ":server 353 * :";
