@@ -34,6 +34,8 @@ private:
 	bool		_isOp;
     int         msgType; //0 for command, 1 for message, 2 for whisper
     std::string _channel;
+    bool        _invited;
+    std::string _invitedBy;
 
 public:
     Client();
@@ -42,6 +44,10 @@ public:
     Client& operator=(const Client& other);
     ~Client();
 
+    std::string getInvitedBy(){return this->_invitedBy;}
+    void setInviteedBy(std::string user){this->_invitedBy = user;}
+    bool getInvite(){return _invited;}
+    void setInvite(bool invite){this->_invited = invite;}
     bool isAuthenticated() const;
     void setAuthenticated(bool v);
 	bool isOp() const;
