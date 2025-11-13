@@ -291,7 +291,7 @@ void Server::run()
 							else if (!cmd.empty())
 								resp = ":server 421 :" + cmd + " :Unknown command\r\n";
 						}
-						else
+						else if (cli.isAuthenticated() == false && cli.username().empty())
 							resp = ":server 464 : Authenticate first\r\n";
 						if (!resp.empty())
 						{

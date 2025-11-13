@@ -77,10 +77,6 @@ int Client::receive(Client Sender)
 	{
 		char buf[512]; // RFC 1459 recommends max 512 bytes messages
 		ssize_t bytes = recv(_clientFD, buf, sizeof(buf) - 1, 0);
-		if (bytes > 0)
-		{
-			char buf[1024];
-			ssize_t bytes = recv(_clientFD, buf, sizeof(buf) - 1, 0);
 			if (bytes > 0)
 			{
 				buf[bytes] = '\0';
@@ -94,7 +90,6 @@ int Client::receive(Client Sender)
 					_isConnected = false;
 			}
 			return static_cast<int>(bytes);
-		}
 	}
 	return (0);
 }
