@@ -232,7 +232,14 @@ void Server::run()
 							else if (cmd.find("INVITE ") == 0)
 							{
 								std::string user = cmd.substr(7);
-								
+								for (int i = 0; i < (int)_clients.size(); i++)
+									if (_clients[i].username() == user)
+									{
+										_clients[i].setInvite(true);
+										_clients[i].setInviteedBy(cli.getChannel());
+										_clients[i].setMsgType(2);
+										resp = cli.username() + " has invited you to join the channel: " + cli.getChannel() + "\r\n";
+									}
 							}
 							else if (cmd.find("WHISPER ") == 0)
 							{
@@ -249,6 +256,20 @@ void Server::run()
 									resp = "\r\n";
 								}
 								cli.setMsgType(2);
+							}
+							else if (cli.getInvite() == true)
+							{
+								if (cmd.find("y") == 0)
+								{
+									cli.setChannel(cli.getInvitedBy());
+									resp = "joined the channel " + cli.getChannel() + "\r\n";
+									cli.setInvite(false);
+								}
+								else
+								{
+									resp = "invite refused\r\n";
+									cli.setInvite(false);
+								}
 							}
 							else if (!cmd.empty())
 								resp = ":server 421 :" + cmd + " :Unknown command\r\n";
