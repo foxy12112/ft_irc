@@ -43,6 +43,8 @@ class Server
 		std::map<int, Client>& getClients();
 		const std::string& getPassword() const;
 		void broadcast(const std::string& msg, int exclude_fd = -1);
+		std::string welcomeCommands(std::string cmd, Client &cli);
+		std::string Commands(std::string cmd, Client &cli, std::string &privateMessageClient, int i);
 };
 
 #endif
