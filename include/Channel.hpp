@@ -29,15 +29,17 @@ public:
 		MODE_USER_LIMIT = 1 << 3,
 	};
 	Channel(){};
-	Channel(std::string name, std::string topic){this->_name = name, this->_topic = topic, this->_limit = 0, this->inviteOnly = false;}
+	Channel(std::string name, std::string topic){this->_name = name, this->_topic = topic, this->_limit = 0, this->inviteOnly = false, this->topicOpOnly = false;}
 	~Channel(){;}
 	std::string getName(){return this->_name;}
-	std::string getTopic(){return this->_name;}
+	std::string getTopic(){return this->_topic;}
+	bool		getTopicOp(){return this->topicOpOnly;}
 	std::string getPass(){return this->_pass;}
 	int			getLimit(){return this->_limit;}
 	bool		getInvite(){return this->inviteOnly;}
 
 	void		setTopic(std::string topic){this->_topic = topic;}
+	void		setTopicOp(bool status){this->topicOpOnly = status;}
 	void		setPass(std::string pass){this->_pass = pass;}
 	void		setLimit(int limit){this->_limit = limit;}
 	void		setInvite(bool status){this->inviteOnly = status;}
@@ -50,6 +52,7 @@ public:
 			this->_limit = other._limit;
 			this->_modes = other._modes;
 			this->inviteOnly = other.inviteOnly;
+			this->topicOpOnly = other.topicOpOnly;
 		}
 		return (*this);
 	}
@@ -57,6 +60,7 @@ private:
 	std::string	_name;
 	std::string	_topic;
 	std::string	_pass;
+	bool		topicOpOnly;
 	bool		inviteOnly;
 	int			_limit;
 	int			_modes;

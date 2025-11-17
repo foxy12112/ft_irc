@@ -59,6 +59,7 @@ void	Server::createChannel(void)
 	this->_channels[2] = Channel("#retrocomputing", "Everything about old PCs, terminals, and vintage OSes");
 	this->_channels[3] = Channel("#Operator channel", "Channel only for operators");
 	this->_channels[4] = Channel("#zenmode", "A calm space for meditation, mindfulness, and philosophy talk");
+	this->_channels[5] = Channel("purgatory", "this is just a purgatory for people who have been kicked from their channel");
 }
 
 std::map<int, Client>& Server::getClients() // Accessor for clients map
@@ -93,6 +94,7 @@ std::string Server::welcomeCommands(std::string cmd, Client &cli)
 		{
 			cli.setOp(true);
 			resp = ":server 001 nick :Welcome to the IRC server as operator\r\n";
+			cli.setAuthenticated(true);
 		}
 		else
 			resp = ":server 464 :operator Password incorrect\r\n";
@@ -104,19 +106,28 @@ std::string Server::welcomeCommands(std::string cmd, Client &cli)
 		if (pass == _password)
 		{
 			resp = ":server 001 nick :Welcome to the IRC server\r\n";
+			cli.setAuthenticated(true);
 		}
 		else
 			resp = ":server 464 :Password incorrect\r\n";
 	}
-	else if (cli.username().empty() &&  cli.isAuthenticated() == false)
+	else if (cli.username().empty())
 	{
 		cli.setMsgType(0);
 		if (cmd.find("USER ") == 0)
 		{
 			std::string user = cmd.substr(5);
-			cli.setUsername(user);
+			for (int i = 0; i < (int)this->_clients.size(); i++)
+			{
+				if (this->_clients[i].nickname() == user || this->_clients[i].username() == user)
+					resp = ":server 001: nickname unabailable\r\n";
+			}
+			if (resp.empty())
+			{
+				cli.setUsername(user);
+				resp = ":server 002 " + user + " :User set\r\n";
+			}
 			resp = "welcome to the IRC server " + user + "\r\n";
-			cli.setAuthenticated(true);
 		}
 		else
 			resp = ":server 464 : Please set username\tusage \"USER (username)\"\r\n";
@@ -128,6 +139,9 @@ std::string Server::Commands(std::string cmd, Client &cli, std::string &privateM
 {
 	std::string resp;
 	cli.setMsgType(1);
+	i++;
+	i--;
+	std::cout << cmd;
 	if (cmd == "PING")
 	{
 		resp = "PONG\r\n";
@@ -136,28 +150,45 @@ std::string Server::Commands(std::string cmd, Client &cli, std::string &privateM
 	else if (cmd.find("NICK ") == 0)
 	{
 		std::string nick = cmd.substr(5);
-		cli.setNickname(nick);
-		resp = ":server 001 " + nick + " :Nickname set\r\n";
+		for (int i = 0; i < (int)this->_clients.size(); i++)
+		{
+			if (this->_clients[i].nickname() == nick || this->_clients[i].username() == nick)
+				resp = ":server 001: nickname unabailable\r\n";
+		}
+		if (resp.empty())
+		{
+			cli.setNickname(nick);
+			resp = ":server 001 " + nick + " :Nickname set\r\n";
+		}
+		cli.setMsgType(0);
 	}
 	else if (cmd.find("USER ") == 0)
 	{
 		std::string user = cmd.substr(5);
-		cli.setUsername(user);
-		resp = ":server 002 " + user + " :User set\r\n";
+		for (int i = 0; i < (int)this->_clients.size(); i++)
+		{
+			if (this->_clients[i].nickname() == user || this->_clients[i].username() == user)
+				resp = ":server 001: nickname unabailable\r\n";
+		}
+		if (resp.empty())
+		{
+			cli.setUsername(user);
+			resp = ":server 002 " + user + " :User set\r\n";
+		}
 		cli.setMsgType(0);
 	}
 	else if (cmd.find("LIST_CMD ") == 0)
 		resp = ":server 323 :NICK | USER | LIST_CMD | LIST_USER\r\n";
 	else if (cmd.find("LIST_USER ") == 0)
 	{
-		resp = ":server 353 * :";
-		for (std::map<int, Client>::iterator iter = _clients.begin(); iter != _clients.end(); ++iter)
+		resp = ":server 353 * :\n";
+		for (int i = 0; i < (int)_clients.size(); i++)
 		{
 			if (_clients[i].isConnected())
 				resp.append(_clients[i].username()+"	|	"+_clients[i].nickname()+"\n");
 		}
 		resp.append("\r\n");
-		cli.setMsgType(0); // command doesnt work todo
+		cli.setMsgType(0);
 	}
 	else if (cmd.find("LIST_CHANNELS ") == 0)
 	{
@@ -191,7 +222,7 @@ std::string Server::Commands(std::string cmd, Client &cli, std::string &privateM
 				_clients[i].setInvite(true);
 				_clients[i].setInviteedBy(cli.getChannel());
 				_clients[i].setMsgType(2);
-				resp = cli.username() + " has invited you to join the channel: " + cli.getChannel() + "\r\n"; //works, need to improve the visuals, when inviting someone the client doesnt receise a signal that says you have been invited, todo
+				_clients[i].queueResponse(cli.username() + " has invited you to join the channel: " + cli.getChannel() + "(Press y or n)" + "\r\n");
 			}
 	}
 	else if (cmd.find("WHISPER ") == 0)
@@ -200,18 +231,13 @@ std::string Server::Commands(std::string cmd, Client &cli, std::string &privateM
 		if (pos != std::string::npos)
 		{
 			privateMessageClient = cmd.substr(8, pos - 8);
-			std::string message = cmd.substr(pos + 1);
-			resp = message + "\r\n";
+			resp = cmd.substr(8 + privateMessageClient.size() + 1) + "\r\n";
+			cli.setMsgType(2);
 		}
-		else
-		{
-			privateMessageClient = cmd.substr(8);
-			resp = "\r\n";
-		}
-		cli.setMsgType(2);
 	}
 	else if (cli.getInvite() == true)
 	{
+		cli.setMsgType(1);
 		if (cmd.find("y") == 0)
 		{
 			cli.setChannel(cli.getInvitedBy());
@@ -220,9 +246,52 @@ std::string Server::Commands(std::string cmd, Client &cli, std::string &privateM
 		}
 		else
 		{
-			resp = "invite refused\r\n";
+			for (int i = 0; i < (int)this->_clients.size();i++)
+				if (this->_clients[i].username() == cli.getInvitedBy())
+				{
+					_clients[i].queueResponse("invite refused\r\n");
+					_clients[i].setMsgType(0);
+				}
 			cli.setInvite(false);
 		}
+	}
+	else if (cmd.find("KICK ") == 0 && cli.isOp())
+	{
+		std::string user = cmd.substr(5);
+		for (int i = 0; i < (int)this->_clients.size();i++)
+		{
+			if (user == _clients[i].username())
+			{
+				_clients[i].queueResponse("you have been kicked from the channel: " + _clients[i].getChannel() + " you have been sent to purgatory\r\n");
+				_clients[i].setChannel("purgatory");
+				_clients[i].setMsgType(0);
+				resp = "user: " + user + " has been sent to purgatory\r\n";
+			}
+			else
+				resp = "client doesnt exist dumbass\r\n";
+		}
+		cli.setMsgType(1);
+	}
+	else if (cmd.find("TOPIC ") == 0)
+	{
+		for (int i = 0; i < (int)this->_channels.size();i++)
+		{
+			if (this->_channels[i].getName() == cli.getChannel())
+			{
+				if (this->_channels[i].getTopicOp() == false)
+					this->_channels[i].setTopic(cmd.substr(6));
+				else
+					if (cli.isOp() == true)
+						this->_channels[i].setTopic(cmd.substr(6));
+				resp = "channel topic changed succesfully\r\n";
+			}
+		}
+		if (resp.empty())
+			resp = "channel topic could not be changed, you arel ikely not op\r\n";
+	}
+	else if (cmd.find("MODE ") == 0)
+	{
+		//TODO
 	}
 	else
 		resp = cmd + "\r\n";
@@ -236,6 +305,7 @@ void Server::run()
 	fds[0].events = POLLIN;
 	std::string privateMessageClient;
 	createChannel();
+	this->_channels[5].setInvite(true);
 	while (true) // Main server loop
 	{
 		if (poll(&fds[0], fds.size(), -1) < 0) // If poll fails
@@ -276,10 +346,11 @@ void Server::run()
 					std::string cmd;
 					while (cli.extractNextCommand(cmd)) //doesnt enter, todo
 					{
+						std::cout << cmd;
 						if (cmd.empty())
 							continue ;
 						std::string resp;
-						if (cli.isAuthenticated() == false)
+						if (cli.isAuthenticated() == false || cli.username().empty())
 							resp = welcomeCommands(cmd, cli);
 						else if (cli.isAuthenticated() == true && !cli.username().empty())
 							resp = Commands(cmd, cli, privateMessageClient, i);
@@ -287,23 +358,31 @@ void Server::run()
 							resp = ":server 464 : Authenticate first\r\n";
 						if (!resp.empty())
 						{
-							//TODO DOESNT ENTER HERE raaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
-							//add check for command or message
+							std::cout << "hji" << std::endl;
 							if (cli.getMsgType() == 1)
 								for (int i = 0; i < (int)_clients.size(); i++)
 								{
-									if (_clients[i].getFd() != cli.getFd() && _clients[i].getChannel() == cli.getChannel())
-										_clients[i].queueResponse(cli.username()+": "+resp);
+									if (_clients[i].getFd() != cli.getFd() && _clients[i].getChannel() == cli.getChannel() && cli.isAuthenticated() == true && !cli.username().empty())
+									{
+										if (!cli.nickname().empty())
+											_clients[i].queueResponse(cli.nickname()+": "+resp);
+										else
+											_clients[i].queueResponse(cli.username()+": "+resp);
+									}
 								}
 							else if (cli.getMsgType() == 2)
 							{
 								for (int i = 0; i < (int)_clients.size(); i++)
 									if (_clients[i].username() == privateMessageClient)
-										_clients[i].queueResponse(cli.username()+": "+resp);
+									{
+										if (!cli.nickname().empty())
+												_clients[i].queueResponse(cli.nickname()+": "+resp);
+										else
+												_clients[i].queueResponse(cli.username()+": "+resp);
+									}
 							}
 							else if (cli.getMsgType() == 0)
 								cli.queueResponse(resp);
-							std::cout << "im here4" << std::endl;
 						}
 					}
 				}
