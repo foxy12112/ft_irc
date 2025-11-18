@@ -45,6 +45,18 @@ class Server
 		void broadcast(const std::string& msg, int exclude_fd = -1);
 		std::string welcomeCommands(std::string cmd, Client &cli);
 		std::string Commands(std::string cmd, Client &cli, std::string &privateMessageClient, int i);
+		void	Mode(std::string cmd, std::string &resp, Client &cli);
+		void	Topic(std::string &resp, std::string cmd, Client &cli);
+		void	Kick(std::string &resp, std::string cmd, Client &cli);
+		void	wasInvited(std::string cmd, std::string &resp, Client &cli);
+		void	Whisper(std::string &resp, std::string &privateMessageClient, std::string cmd, Client &cli);
+		void	Invite(std::string &resp, std::string cmd, Client &cli);
+		void	Join(std::string &resp, std::string cmd, Client &cli);
+		void	ListChannel(std::string &resp, Client &cli);
+		void	ListUser(std::string &resp, Client &cli);
+		void	ListCommands(std::string &resp);
+		void	Nick(std::string cmd, std::string &resp, Client &cli);
+		void	User(std::string cmd, std::string &resp, Client &cli);
 };
 
 #endif
