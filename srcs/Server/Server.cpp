@@ -279,11 +279,16 @@ std::string Server::Commands(std::string cmd, Client &cli, std::string &privateM
 			if (this->_channels[i].getName() == cli.getChannel())
 			{
 				if (this->_channels[i].getTopicOp() == false)
+				{
 					this->_channels[i].setTopic(cmd.substr(6));
+					resp = "channel topic changed succesfully\r\n";
+				}
 				else
 					if (cli.isOp() == true)
+					{
 						this->_channels[i].setTopic(cmd.substr(6));
-				resp = "channel topic changed succesfully\r\n";
+						resp = "channel topic changed succesfully\r\n";
+					}
 			}
 		}
 		if (resp.empty())
@@ -291,7 +296,65 @@ std::string Server::Commands(std::string cmd, Client &cli, std::string &privateM
 	}
 	else if (cmd.find("MODE ") == 0)
 	{
-		//TODO
+		int ind;
+		std::string mode = cmd.substr(5, 2);
+		for (int i = 0; i < (int)this->_channels.size();i++)
+			if (cli.getChannel() == this->_channels[i].getName())
+				ind = i;
+		Channel &channel = this->_channels[ind];
+		if (mode == "-i")
+		{
+			channel.setInvite(!channel.getInvite());
+			resp = "Channel: " + channel.getName() + " has been set to " + (channel.getInvite() ? "invite only\r\n" : "no invite needed\r\n");
+		}
+		else if (mode == "-t")
+		{
+			channel.setTopicOp(!channel.getTopicOp());
+			resp = "Channel: " + channel.getName() + " Topic can be edited by " + (channel.getTopicOp() ? "operators only\r\n" : "anyone\r\n");
+		}
+		else if (mode == "-k")
+		{
+			if (!channel.getPass().empty())
+			{
+				channel.setPass(NULL);
+				resp = "Channel: password has been removed\r\n";
+			}
+			else if (channel.getPass().empty())
+			{
+				std::string pass = cmd.substr(8);
+				if (!pass.empty())
+				{
+					channel.setPass(pass);
+					resp = "Channel: password has been set\r\n";
+				}
+				else
+					resp = "Channel: password could not be set: error empty password\r\n";
+			}
+		}
+		else if (mode == "-o")
+		{
+			std::string user = cmd.substr(8);
+			for (int i = 0; i < (int)this->_clients.size() ; i++)
+				if (user == this->_clients[i].username())
+				{
+					this->_clients[i].setOp(!this->_clients[i].isOp());
+					resp = "Client: " + _clients[i].username() + (this->_clients[i].isOp() ? "is now an operator\r\n" : "is not an operator anymore\r\n");
+				}
+		}
+		else if (mode == "-l")
+		{
+			std::string limit = cmd.substr(8);
+			if (limit.empty())
+			{
+				channel.setLimit(-1);
+				resp = "Channel: Limit has been removed\r\n"; //TODO change join/invite to care about channel limit
+			}
+			else
+			{
+				channel.setLimit(std::atoi(limit.c_str()));
+				resp = "Channel: Limit has been set to " + limit + "\r\n";
+			}
+		}
 	}
 	else
 		resp = cmd + "\r\n";
@@ -346,7 +409,6 @@ void Server::run()
 					std::string cmd;
 					while (cli.extractNextCommand(cmd)) //doesnt enter, todo
 					{
-						std::cout << cmd;
 						if (cmd.empty())
 							continue ;
 						std::string resp;
@@ -358,7 +420,6 @@ void Server::run()
 							resp = ":server 464 : Authenticate first\r\n";
 						if (!resp.empty())
 						{
-							std::cout << "hji" << std::endl;
 							if (cli.getMsgType() == 1)
 								for (int i = 0; i < (int)_clients.size(); i++)
 								{
