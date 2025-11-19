@@ -135,7 +135,7 @@ std::string Server::welcomeCommands(std::string cmd, Client &cli)
 	return resp;
 }
 
-std::string Server::Commands(std::string cmd, Client &cli, std::string &privateMessageClient, int i)
+std::string Server::Commands(std::string cmd, Client &cli, int i)
 {
 	std::string resp;
 	cli.setMsgType(1);
@@ -146,17 +146,22 @@ std::string Server::Commands(std::string cmd, Client &cli, std::string &privateM
 		resp = "PONG\r\n";
 		cli.setMsgType(0);
 	}
-	switch (1)
+	Command c = stringToCommand(cmd);
+	switch(c)
 	{
-	case cmd.find("Topic "):
-		/* code */
-		break;
-	
-	default:
-		break;
+		case CMD_KICK: Kick(resp, cmd, cli) ; break;
+		case CMD_INVITE: Invite(cmd, cli); break;
+		case CMD_TOPIC: Topic(resp, cmd, cli); break;
+		case CMD_MODE: Mode(cmd, resp, cli); break;
+		case CMD_WHISPER: Whisper(cmd, cli); break ;
+		case CMD_JOIN: Join(resp, cmd, cli); break;
+		case CMD_LIST_CHANNEL: ListChannel(resp, cli); break;
+		case CMD_LIST_USER: ListUser(resp, cli); break;
+		case CMD_LIST_COMMANDS: ListCommands(resp); break;
+		case CMD_NICK: Nick(cmd, resp, cli); break;
+		case CMD_USER: User(cmd, resp, cli); break;
+		case CMD_UNKNOWN: resp = cmd + "\r\n"; break;
 	}
-	else
-		resp = cmd + "\r\n";
 	return resp;
 }
 
@@ -165,7 +170,6 @@ void Server::run()
 	std::vector<struct pollfd> fds(1);
 	fds[0].fd = _sock_fd;
 	fds[0].events = POLLIN;
-	std::string privateMessageClient;
 	createChannel();
 	this->_channels[5].setInvite(true);
 	while (true) // Main server loop
@@ -214,7 +218,7 @@ void Server::run()
 						if (cli.isAuthenticated() == false || cli.username().empty())
 							resp = welcomeCommands(cmd, cli);
 						else if (cli.isAuthenticated() == true && !cli.username().empty())
-							resp = Commands(cmd, cli, privateMessageClient, i);
+							resp = Commands(cmd, cli, i);
 						else if (cli.isAuthenticated() == false && cli.username().empty())
 							resp = ":server 464 : Authenticate first\r\n";
 						if (!resp.empty())
@@ -230,17 +234,6 @@ void Server::run()
 											_clients[i].queueResponse(cli.username()+": "+resp);
 									}
 								}
-							else if (cli.getMsgType() == 2)
-							{
-								for (int i = 0; i < (int)_clients.size(); i++)
-									if (_clients[i].username() == privateMessageClient)
-									{
-										if (!cli.nickname().empty())
-												_clients[i].queueResponse(cli.nickname()+": "+resp);
-										else
-												_clients[i].queueResponse(cli.username()+": "+resp);
-									}
-							}
 							else if (cli.getMsgType() == 0)
 								cli.queueResponse(resp);
 						}

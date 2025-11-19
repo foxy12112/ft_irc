@@ -75,7 +75,7 @@ void	Server::Join(std::string &resp, std::string cmd, Client &cli)
 	cli.setMsgType(0);
 }
 
-void	Server::Invite(std::string &resp, std::string cmd, Client &cli)
+void	Server::Invite(std::string cmd, Client &cli)
 {
 	std::string user = cmd.substr(7);
 	for (int i = 0; i < (int)_clients.size(); i++)
@@ -88,15 +88,23 @@ void	Server::Invite(std::string &resp, std::string cmd, Client &cli)
 		}
 }
 
-void	Server::Whisper(std::string &resp, std::string &privateMessageClient, std::string cmd, Client &cli)
+void	Server::Whisper(std::string cmd, Client &cli)
 {
-	std::size_t pos = cmd.find(' ', 8);
+	std::size_t pos = cmd.find(' ');
+	std::size_t pos2 = cmd.find(' ', pos);
+	std::cout << pos << "  " << pos2 << "  " << cmd.substr(8, pos -8) << std::endl;
 	if (pos != std::string::npos)
 	{
-		privateMessageClient = cmd.substr(8, pos - 8);
-		resp = cmd.substr(8 + privateMessageClient.size() + 1) + "\r\n";
-		cli.setMsgType(2);
+		for (int i = 0; i < (int)_clients.size(); i++)
+			if (_clients[i].username() == cmd.substr(8, pos - 8))
+				_clients[i].queueResponse(cli.username() + ": " + cmd.substr(pos2) + "\r\n");
 	}
+
+	/*TODO
+	1. get the first and sercond space
+	2.m get the lenght of the username + 1
+	3. send msg to client
+	*/
 }
 
 void	Server::wasInvited(std::string cmd, std::string &resp, Client &cli)

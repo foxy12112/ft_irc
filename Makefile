@@ -39,7 +39,7 @@ ERROR_FILE	=	error.log
 #											Sources												#
 #################################################################################################
 
-_SERVER			=	Server.cpp
+_SERVER			=	Server.cpp Commands.cpp
 SERVER			=	$(addprefix Server/, $(_SERVER))
 
 _CLIENT			=	Client.cpp
