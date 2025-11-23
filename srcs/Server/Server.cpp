@@ -147,6 +147,7 @@ std::string Server::Commands(std::string cmd, Client &cli, int i)
 		cli.setMsgType(0);
 	}
 	Command c = stringToCommand(cmd);
+	std::cout << cmd << std::endl;
 	switch(c)
 	{
 		case CMD_KICK: Kick(resp, cmd, cli) ; break;
@@ -161,6 +162,7 @@ std::string Server::Commands(std::string cmd, Client &cli, int i)
 		case CMD_NICK: Nick(cmd, resp, cli); break;
 		case CMD_USER: User(cmd, resp, cli); break;
 		case CMD_UNKNOWN: resp = cmd + "\r\n"; break;
+		default: break ;
 	}
 	return resp;
 }

@@ -80,6 +80,7 @@ inline Command stringToCommand(const std::string &s){
 	int i = 0;
 	for (i = 0; i < (int)s.size() && s[i] != ' ';i++)
 		cmd += s[i];
+	cmd += s[i];
 	static std::map<std::string, Command> table;
 	if (table.empty())
 	{
@@ -95,7 +96,7 @@ inline Command stringToCommand(const std::string &s){
 		table["NICK "]			= CMD_NICK;
 		table["USER "]			= CMD_USER;
 	}
-	std::map<std::string, Command>::const_iterator it = table.find(s);
+	std::map<std::string, Command>::const_iterator it = table.find(cmd);
 	if (it != table.end())
 		return (it->second);
 	return (CMD_UNKNOWN);

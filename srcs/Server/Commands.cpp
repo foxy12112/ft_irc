@@ -91,20 +91,18 @@ void	Server::Invite(std::string cmd, Client &cli)
 void	Server::Whisper(std::string cmd, Client &cli)
 {
 	std::size_t pos = cmd.find(' ');
-	std::size_t pos2 = cmd.find(' ', pos);
-	std::cout << pos << "  " << pos2 << "  " << cmd.substr(8, pos -8) << std::endl;
+	std::size_t pos2 = cmd.find(' ', pos + 1);
+	if (pos == std::string::npos || pos2 == std::string::npos)
+	{
+		cli.queueResponse("Whisper failed\r\n");
+		return ;
+	}
 	if (pos != std::string::npos)
 	{
 		for (int i = 0; i < (int)_clients.size(); i++)
-			if (_clients[i].username() == cmd.substr(8, pos - 8))
+			if (_clients[i].username() == cmd.substr(8, pos2 - 8))
 				_clients[i].queueResponse(cli.username() + ": " + cmd.substr(pos2) + "\r\n");
 	}
-
-	/*TODO
-	1. get the first and sercond space
-	2.m get the lenght of the username + 1
-	3. send msg to client
-	*/
 }
 
 void	Server::wasInvited(std::string cmd, std::string &resp, Client &cli)
