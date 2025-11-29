@@ -17,6 +17,7 @@ Server::Server(int port, const std::string &password) : _sock_fd(-1), _port(port
 	signal(SIGPIPE, SIG_IGN); // Prevents crash on write to closed socket
 	createSocket();
 	bindAndListen();
+	
 }
 
 Server::~Server()
@@ -62,15 +63,15 @@ void	Server::createChannel(void)
 	this->_channels[5] = Channel("purgatory", "this is just a purgatory for people who have been kicked from their channel");
 }
 
-std::map<int, Client>& Server::getClients() // Accessor for clients map
-{
-	return (_clients);
-}
+//std::map<int, Client>& Server::getClients() // Accessor for clients map
+//{
+//	return (_clients);
+//}
 
-const std::string& Server::getPassword() const // Accessor for server password
-{
-	return (_password);
-}
+//const std::string& Server::getPassword() const // Accessor for server password
+//{
+//	return (_password);
+//}
 
 void Server::broadcast(const std::string& msg, int exclude_fd) // Broadcasts a msg to all authenticated clients, except for exclude_fd
 {
@@ -115,22 +116,7 @@ std::string Server::welcomeCommands(std::string cmd, Client &cli)
 	{
 		cli.setMsgType(0);
 		if (cmd.find("USER ") == 0)
-		{
-			std::string user = cmd.substr(5);
-			for (int i = 0; i < (int)this->_clients.size(); i++)
-			{
-				if (this->_clients[i].nickname() == user || this->_clients[i].username() == user)
-					resp = ":server 001: nickname unabailable\r\n";
-			}
-			if (resp.empty())
-			{
-				cli.setUsername(user);
-				resp = ":server 002 " + user + " :User set\r\n";
-			}
-			resp = "welcome to the IRC server " + user + "\r\n";
-		}
-		else
-			resp = ":server 464 : Please set username\tusage \"USER (username)\"\r\n";
+			User(cmd, resp, cli);
 	}
 	return resp;
 }
@@ -141,29 +127,30 @@ std::string Server::Commands(std::string cmd, Client &cli, int i)
 	cli.setMsgType(1);
 	i++;
 	i--;
+	Command c = stringToCommand(cmd);
 	if (cmd == "PING")
 	{
 		resp = "PONG\r\n";
 		cli.setMsgType(0);
 	}
-	Command c = stringToCommand(cmd);
-	std::cout << cmd << std::endl;
-	switch(c)
-	{
-		case CMD_KICK: Kick(resp, cmd, cli) ; break;
-		case CMD_INVITE: Invite(cmd, cli); break;
-		case CMD_TOPIC: Topic(resp, cmd, cli); break;
-		case CMD_MODE: Mode(cmd, resp, cli); break;
-		case CMD_WHISPER: Whisper(cmd, cli); break ;
-		case CMD_JOIN: Join(resp, cmd, cli); break;
-		case CMD_LIST_CHANNEL: ListChannel(resp, cli); break;
-		case CMD_LIST_USER: ListUser(resp, cli); break;
-		case CMD_LIST_COMMANDS: ListCommands(resp); break;
-		case CMD_NICK: Nick(cmd, resp, cli); break;
-		case CMD_USER: User(cmd, resp, cli); break;
-		case CMD_UNKNOWN: resp = cmd + "\r\n"; break;
-		default: break ;
-	}
+	else
+		switch(c)
+		{
+			case CMD_KICK: Kick(resp, cmd, cli) ; break;
+			case CMD_INVITE: Invite(cmd, cli); break;
+			case CMD_TOPIC: Topic(resp, cmd, cli); break;
+			case CMD_MODE: Mode(cmd, resp, cli); break;
+			case CMD_WHISPER: Whisper(cmd, cli); break ;
+			case CMD_JOIN: Join(resp, cmd, cli); break;
+			case CMD_LIST_CHANNEL: ListChannel(resp, cli); break;
+			case CMD_LIST_USER: ListUser(resp, cli); break;
+			case CMD_LIST_COMMANDS: ListCommands(resp); break;
+			case CMD_NICK: Nick(cmd, resp, cli); break;
+			case CMD_USER: User(cmd, resp, cli); break;
+			case CMD_MESSAGE: Message(cmd, cli); break;
+			case CMD_UNKNOWN: resp = cmd + "\r\n"; break;
+			default: break ;
+		}
 	return resp;
 }
 
@@ -214,6 +201,7 @@ void Server::run()
 					std::string cmd;
 					while (cli.extractNextCommand(cmd)) //doesnt enter, todo
 					{
+						std::cout << cmd << std::endl;
 						if (cmd.empty())
 							continue ;
 						std::string resp;

@@ -19,16 +19,28 @@ void	Server::Nick(std::string cmd, std::string &resp, Client &cli)
 
 void	Server::User(std::string cmd, std::string &resp, Client &cli)
 {
-	std::string user = cmd.substr(5);
-	for (int i = 0; i < (int)this->_clients.size(); i++)
+	std::string param = cmd.substr(5);
+
+	std::istringstream iss(param);
+	std::string Username;
+	iss >> Username;
+	if (Username.empty())
+		resp = ":server 461 USER: not enough parameters\r\n";
+	else
 	{
-		if (this->_clients[i].nickname() == user || this->_clients[i].username() == user)
-			resp = ":server 001: nickname unabailable\r\n";
-	}
-	if (resp.empty())
-	{
-		cli.setUsername(user);
-		resp = ":server 002 " + user + " :User set\r\n";
+		for (int i = 0; i < (int)this->_clients.size();i++)
+		{
+			if (this->_clients[i].nickname() == Username || this->_clients[i].username() == Username)
+			{
+				resp = ":server 433 * " + Username + " :Username unavailable\r\n";
+				break ;
+			}
+		}
+		if (resp.empty())
+		{
+			cli.setUsername(Username);
+			resp = ":server 002 " + Username + " :User set\r\n";
+		}
 	}
 	cli.setMsgType(0);
 }
@@ -101,7 +113,7 @@ void	Server::Whisper(std::string cmd, Client &cli)
 	{
 		for (int i = 0; i < (int)_clients.size(); i++)
 			if (_clients[i].username() == cmd.substr(8, pos2 - 8))
-				_clients[i].queueResponse(cli.username() + ": " + cmd.substr(pos2) + "\r\n");
+				_clients[i].queueResponse(cli.username() + ":" + cmd.substr(pos2) + "\r\n");
 	}
 }
 
@@ -156,11 +168,11 @@ void	Server::Topic(std::string &resp, std::string cmd, Client &cli)
 				resp = "channel topic changed succesfully\r\n";
 			}
 			else
-				if (cli.isOp() == true)
-				{
-					this->_channels[i].setTopic(cmd.substr(6));
-					resp = "channel topic changed succesfully\r\n";
-				}
+			if (cli.isOp() == true)
+			{
+				this->_channels[i].setTopic(cmd.substr(6));
+				resp = "channel topic changed succesfully\r\n";
+			}
 		}
 	}
 	if (resp.empty())

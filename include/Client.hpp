@@ -38,36 +38,36 @@ private:
     std::string _invitedBy;
 
 public:
-    Client();
-    Client(int fd);
-    Client(const Client& other);
-    Client& operator=(const Client& other);
-    ~Client();
+    //Client();
+    //Client(int fd);
+    //Client(const Client& other);
+    //Client& operator=(const Client& other);
+    //~Client();
 
-    std::string getInvitedBy(){return this->_invitedBy;}
-    void setInviteedBy(std::string user){this->_invitedBy = user;}
-    bool getInvite(){return _invited;}
-    void setInvite(bool invite){this->_invited = invite;}
-    bool isAuthenticated() const;
-    void setAuthenticated(bool v);
-	bool isOp() const;
-	void setOp(bool v);
-    void setMsgType(int type){this->msgType = type;}
-    int  getMsgType(void){return this->msgType;}
-    std::string getChannel(void){return this->_channel;}
-    void        setChannel(std::string channel){this->_channel = channel;}
-    bool isConnected() const;
+    //std::string getInvitedBy(){return this->_invitedBy;}
+    //void setInviteedBy(std::string user){this->_invitedBy = user;}
+    //bool getInvite(){return _invited;}
+    //void setInvite(bool invite){this->_invited = invite;}
+    //bool isAuthenticated() const;
+    //void setAuthenticated(bool v);
+	//bool isOp() const;
+	//void setOp(bool v);
+    //void setMsgType(int type){this->msgType = type;}
+    //int  getMsgType(void){return this->msgType;}
+    //std::string getChannel(void){return this->_channel;}
+    //void        setChannel(std::string channel){this->_channel = channel;}
+    //bool isConnected() const;
     void disconnect();
     int receive(Client Sender);
     bool extractNextCommand(std::string &cmd);
     void queueResponse(const std::string &resp);
     bool flushSend();
     bool hasDataToSend() const;
-    int getFd(void){return this->_clientFD;}
-    const std::string& nickname() const;
-	void setNickname(const std::string &nick);
-    const std::string& username() const;
-	void setUsername(const std::string &user);
+    //int getFd(void){return this->_clientFD;}
+    //const std::string& nickname() const;
+	//void setNickname(const std::string &nick);
+    //const std::string& username() const;
+	//void setUsername(const std::string &user);
 };
 
 #endif
