@@ -10,7 +10,7 @@
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "Server.hpp" // if you see this line in red, ignore it. It compiles.
+#include "newServer.hpp" // if you see this line in red, ignore it. It compiles.
 
 int main(int argc, char **argv)
 {

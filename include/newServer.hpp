@@ -47,7 +47,7 @@ class Server
 
 	public:
 		Server(int port, const std::string &password);
-		~Server(){};
+		~Server();
 		
 		//getters
 		std::string getPasswd(){return _password;}
@@ -66,16 +66,16 @@ class Server
 		void	Topic(std::string cmd, Client &cli);
 		void	Kick(std::string cmd, Client &cli);
 		void	wasInvited(std::string cmd, Client &cli);
-		void	Whisper(std::string cmd, Client &cli);
 		void	Invite(std::string cmd, Client &cli);
 		void	Join(std::string cmd, Client &cli);
-		void	ListChannel(Client &cli);
-		void	ListUser(Client &cli);
-		void	ListCommands();
 		void	Nick(std::string cmd, Client &cli);
 		void	User(std::string cmd, Client &cli);
 		void	Message(std::string cmd, Client &cli);
+		//helpers
 		void	sendToChannel(std::string msg, int channelIndex);
+		int		findChannel(std::string channel);
+		Client	findClient(std::string client);
+		void	createChannel();
 };
 
 inline Command stringToCommand(const std::string &s){
@@ -92,11 +92,10 @@ inline Command stringToCommand(const std::string &s){
 		table["INVITE "]		= CMD_INVITE;
 		table["TOPIC "]			= CMD_TOPIC;
 		table["MODE "]			= CMD_MODE;
-		table["WHISPER "]		= CMD_WHISPER;
 		table["JOIN "]			= CMD_JOIN;
 		table["NICK "]			= CMD_NICK;
 		table["USER "]			= CMD_USER;
-		table["PRIVMSF "]		= CMD_MSG;
+		table["PRIVMSG "]		= CMD_MSG;
 	}
 	std::map<std::string, Command>::const_iterator it = table.find(cmd);
 	if (it != table.end())

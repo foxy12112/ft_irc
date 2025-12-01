@@ -21,15 +21,8 @@ class Server;
 class Channel
 {
 public:
-	enum ModeFlags
-	{
-		MODE_INVITE_ONLY = 1 << 0,
-		MODE_TOPIC_OPONLY = 1 << 1,
-		MODE_PASSWORD = 1 << 2,
-		MODE_USER_LIMIT = 1 << 3,
-	};
 	Channel(){};
-	Channel(std::string name, std::string topic){this->_name = name, this->_topic = topic, this->_limit = 0, this->inviteOnly = false, this->topicOpOnly = false;}
+	Channel(std::string name, std::string topic){this->_name = name, this->_topic = topic, this->_users = 0, this->_limit = 0, this->inviteOnly = false, this->topicOpOnly = false;}
 	~Channel(){;}
 	std::string getName(){return this->_name;}
 	std::string getTopic(){return this->_topic;}
@@ -37,7 +30,9 @@ public:
 	std::string getPass(){return this->_pass;}
 	int			getLimit(){return this->_limit;}
 	bool		getInvite(){return this->inviteOnly;}
+	int			getUsers(){return (this->_users);}
 
+	void		setUsers(int users){this->_users = users;}
 	void		setTopic(std::string topic){this->_topic = topic;}
 	void		setTopicOp(bool status){this->topicOpOnly = status;}
 	void		setPass(std::string pass){this->_pass = pass;}
@@ -53,6 +48,7 @@ public:
 			this->_modes = other._modes;
 			this->inviteOnly = other.inviteOnly;
 			this->topicOpOnly = other.topicOpOnly;
+			this->_users = other._users;
 		}
 		return (*this);
 	}
@@ -63,6 +59,7 @@ private:
 	bool		topicOpOnly;
 	bool		inviteOnly;
 	int			_limit;
+	int			_users;
 	int			_modes;
 };
 

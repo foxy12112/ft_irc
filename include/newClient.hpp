@@ -26,7 +26,7 @@ class Client
 
 	public:
 		Client(): _clientFd(-1), _isAuthenticated(false), _isConnected(false), _isOp(false){;}
-		Client(int fd): _clientFd(fd), _isAuthenticated(false), _isConnected(false), _isOp(false){;}
+		Client(int fd): _clientFd(fd), _isAuthenticated(false), _isConnected(true), _isOp(false){;}
 		Client(const Client &other);
 		Client &operator=(const Client &other);
 		~Client(){;}

@@ -75,7 +75,7 @@ bool	Client::extractNextCommand(std::string &cmd)
 	if (pos == std::string::npos)
 		return false;
 	cmd = _inBuffer.substr(0, pos);
-	_inBuffer.erase(0, pos - 1);
+	_inBuffer.erase(0, pos + 1);
 	if (!cmd.empty() && cmd[cmd.size() - 1] == '\r')
 		cmd.erase(cmd.size() - 1);
 	return (true);
