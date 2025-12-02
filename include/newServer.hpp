@@ -74,7 +74,7 @@ class Server
 		//helpers
 		void	sendToChannel(std::string msg, int channelIndex);
 		int		findChannel(std::string channel);
-		Client	findClient(std::string client);
+		Client	&findClient(std::string client);
 		void	createChannel();
 };
 

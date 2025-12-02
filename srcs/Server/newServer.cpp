@@ -170,9 +170,34 @@ void	Server::Mode(std::string cmd, Client &cli)
 
 void	Server::Topic(std::string cmd, Client &cli)
 {
-//needed
-(void)cli;
-(void)cmd;
+	std::string param;
+	std::istringstream iss(cmd.substr(6));
+	
+	if (cmd.size() == 5)
+		cli.queueRespone(_channels[cli.getChannelIndex()].getTopic());
+	else if (cli.getOp() == true || _channels[cli.getChannelIndex()].getTopicOp() == false) //check that topic can be changed by everyone or not, operators can always change topic
+	{
+		iss >> param;
+		if (param == "-delete")//check if target should delete topic
+		{
+			iss >> param;
+			if (param[0] == '#')
+				_channels[findChannel(param)].setTopic(NULL);
+			else
+				_channels[cli.getChannelIndex()].setTopic(NULL);
+		}
+		else if (param[0] == '#')//either gets the topic of a specific channel or changes it
+		{
+			int channel = findChannel(param);
+			iss >> param;
+			if (param.empty())
+				cli.queueRespone(_channels[channel].getTopic());
+			else
+				_channels[channel].setTopic(cmd.substr(6 + _channels[channel].getName().size()));
+		}
+		else//gets current channeels topic
+			_channels[cli.getChannelIndex()].setTopic(cmd.substr(6));
+	}
 }
 
 void	Server::Kick(std::string cmd, Client &cli)
@@ -200,25 +225,46 @@ void	Server::Kick(std::string cmd, Client &cli)
 
 void	Server::wasInvited(std::string cmd, Client &cli)
 {
-//TODO later
-(void)cli;
-(void)cmd;
+	if (cmd == "y" || cmd == "accept" || cmd == "yes")
+		cli.setChannelIndex(cli.getInvitedIndex());
+	else
+		findClient(cli.getInvitedClient()).queueRespone(":"+cli.getUserName()+": declined the invitation\r\n");
 }
 
 
 void	Server::Invite(std::string cmd, Client &cli)
 {
-//TODO later
-(void)cli;
-(void)cmd;
+	std::string param;
+	std::istringstream iss(cmd.substr(7));
+	iss >> param;
+	Client &inviting = findClient(param);
+	iss >> param;
+	if (!param.empty())
+	{
+		if (findChannel(param) == -1)
+		{
+			cli.queueRespone(":server 403: channel does not exist\r\n");
+			return ;
+		}
+		inviting.setInvitedIndex(findChannel(param));
+		inviting.setInvitedClient(cli.getUserName());
+		inviting.queueRespone(":" + cli.getUserName() + " invited you to join the channel: " + _channels[findChannel(param)].getName() + "\r\n");
+	}
+	else
+	{
+		inviting.setInvitedIndex(cli.getChannelIndex());
+		inviting.setInvitedClient(cli.getUserName());
+		inviting.queueRespone(":" + cli.getUserName() + " invited you to join the channel: " + _channels[cli.getChannelIndex()].getName() + "\r\n");
+	}
 }
 
 void	Server::Join(std::string cmd, Client &cli)
 {
 	std::string channel = cmd.substr(5);
 	int channelIndex = findChannel(channel);
-
-	if (!_channels[channelIndex].getInvite() && (_channels[channelIndex].getLimit() == -1 || _channels[channelIndex].getLimit() > _channels[channelIndex].getUsers()))
+	if (channelIndex == -1)
+		cli.queueRespone(":server 403: channel does not exist\r\n");
+	if (!_channels[channelIndex].getInvite() && (_channels[channelIndex].getLimit() == -1 || _channels[channelIndex].getLimit() > _channels[channelIndex].getUsers()) && channelIndex != -1)
 		cli.setChannelIndex(channelIndex);
 }
 
@@ -230,11 +276,12 @@ void	Server::Nick(std::string cmd, Client &cli)
 	{
 		if (nick == _clients[i].getNickName() || nick == _clients[i].getUserName())
 		{
-			cli.queueRespone(":Server 443* " +nick+ " : Nickname is already in use\r\n");
+			cli.queueRespone(":Server 433* " +nick+ " : User- or Nickname is already in use\r\n");
 			return;
 		}
 	}
-	cli.setUserName(nick);
+	sendToChannel(":"+cli.getNickName()+"!~"+cli.getUserName()+"@example.com NICK "+nick, cli.getChannelIndex());
+	cli.setNickName(nick);
 }
 
 void	Server::User(std::string cmd, Client &cli)
@@ -247,7 +294,7 @@ void	Server::User(std::string cmd, Client &cli)
 	{
 		if (user == _clients[i].getNickName() || user == _clients[i].getUserName())
 		{
-			cli.queueRespone(":Server 443* " +user+ " : Nickname is already in use\r\n");
+			cli.queueRespone(":Server 443* " +user+ " : User- or Nickname is already in use\r\n");
 			return;
 		}
 	}
@@ -284,12 +331,12 @@ int		Server::findChannel(std::string channel)
 	return (-1);
 }
 
-Client	Server::findClient(std::string client)
+Client	&Server::findClient(std::string client)
 {
 	for (int i = 0; i < (int)_clients.size(); i++)
 		if (client == _clients[i].getUserName())
 			return (_clients[i]);
-	return (-1);
+	throw std::runtime_error("Client not found");
 }
 
 //CAP LS needs :your.server.name CAP * LS : as response from server
@@ -308,7 +355,7 @@ Client	Server::findClient(std::string client)
 void	Server::Commands(std::string cmd, Client &cli)
 {
 	Command c = stringToCommand(cmd);
-	if (cmd.find("PING"))
+	if (cmd.find("PING") == 0)
 		cli.queueRespone("PONG\r\n");
 	else
 		switch(c)
@@ -398,7 +445,7 @@ void Server::run()
 					{
 						if (cmd.empty())
 							continue;
-						if (cmd.find("CAP LS"))//client will send request for a list of available capabilities
+						if (cmd.find("CAP LS") == 0)//client will send request for a list of available capabilities
 							cli.queueRespone(":server CAP * LS :\r\n"); //send empty capability list since we dont have any
 						if (!cli.getAuth() || cli.getUserName().empty())
 							WelcomeCommands(cmd, cli);

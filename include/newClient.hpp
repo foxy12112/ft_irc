@@ -22,6 +22,9 @@ class Client
 		bool		_isConnected;
 		bool		_isOp;
 		int			_channelIndex;
+		int			_invitedIndex;
+		std::string	_invitedClient;
+		bool		_wasInvited;
 		//figure out how to deal with invited
 
 	public:
@@ -35,6 +38,7 @@ class Client
 		int				getFd(){return _clientFd;}
 		int				getClientIndex(){return _index;}
 		int				getChannelIndex(){return _channelIndex;}
+		int				getInvitedIndex(){return _invitedIndex;}
 		bool			getAuth(){return _isAuthenticated;}
 		bool			getCon(){return _isConnected;}
 		bool			getOp(){return _isOp;}
@@ -43,12 +47,15 @@ class Client
 		std::string		&getNickName(){return _nickName;}
 		std::string		&getUserName(){return _userName;}
 		std::string		&getRealName(){return _realName;}
+		std::string		&getInvitedClient(){return _invitedClient;}
+		bool			getInvited(){return _wasInvited;}
 
 		//setters
 
 		void			setFd(int fd){_clientFd = fd;}
 		void			setClientIndex(int index){_index = index;}
 		void			setChannelIndex(int index){_channelIndex = index;}
+		void			setInvitedIndex(int index){_invitedIndex = index;}
 		void			setAuth(bool status){_isAuthenticated = status;}
 		void			setCon(bool status){_isConnected = status;}
 		void			setOp(bool status){_isOp = status;}
@@ -57,7 +64,8 @@ class Client
 		void			setNickName(std::string nickname){_nickName = nickname;}
 		void			setUserName(std::string username){_userName = username;}
 		void			setRealName(std::string realname){_realName = realname;}
-
+		void			setInvitedClient(std::string client){_invitedClient = client;}
+		void			setWasInvited(bool status){_wasInvited = status;}
 		//true functions
 
 		void	disconnect();
