@@ -22,7 +22,7 @@ class Channel
 {
 public:
 	Channel(){};
-	Channel(std::string name, std::string topic){this->_name = name, this->_topic = topic, this->_users = 0, this->_limit = 0, this->inviteOnly = false, this->topicOpOnly = false;}
+	Channel(std::string name, std::string topic){this->_name = name, this->_topic = topic, this->_users = 0, this->_limit = -1, this->inviteOnly = false, this->topicOpOnly = false;}
 	~Channel(){;}
 	std::string getName(){return this->_name;}
 	std::string getTopic(){return this->_topic;}

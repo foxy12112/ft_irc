@@ -50,22 +50,23 @@ int		Client::receive(Client Sender)
 {
 	if (_clientFd < 0)
 		return (-1);
-	if (_channelIndex == Sender._channelIndex)
+	//if (_channelIndex == Sender._channelIndex)
+	//{
+	Sender.getAuth();
+	char buf[512];
+	ssize_t bytes = recv(_clientFd, buf, sizeof(buf) - 1, 0);
+	if (bytes > 0)
 	{
-		char buf[512];
-		ssize_t bytes = recv(_clientFd, buf, sizeof(buf) - 1, 0);
-		if (bytes > 0)
-		{
-			buf[bytes] = '\0';
-			_inBuffer.append(buf, bytes);
-		}
-		else if (bytes == 0)
-			_isConnected = false;
-		else
-			if (errno != EAGAIN && errno != EWOULDBLOCK)
-				_isConnected = false;
-		return (static_cast<int>(bytes));
+		buf[bytes] = '\0';
+		_inBuffer.append(buf, bytes);
 	}
+	else if (bytes == 0)
+		_isConnected = false;
+	else
+		if (errno != EAGAIN && errno != EWOULDBLOCK)
+			_isConnected = false;
+	return (static_cast<int>(bytes));
+	//}
 	return(0);
 }
 

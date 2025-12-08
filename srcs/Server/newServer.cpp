@@ -262,10 +262,23 @@ void	Server::Join(std::string cmd, Client &cli)
 {
 	std::string channel = cmd.substr(5);
 	int channelIndex = findChannel(channel);
+
 	if (channelIndex == -1)
-		cli.queueRespone(":server 403: channel does not exist\r\n");
-	if (!_channels[channelIndex].getInvite() && (_channels[channelIndex].getLimit() == -1 || _channels[channelIndex].getLimit() > _channels[channelIndex].getUsers()) && channelIndex != -1)
-		cli.setChannelIndex(channelIndex);
+	{
+		cli.queueRespone(":server 403 " + cli.getNickName() + " " + channel + " :No such channel\r\n");
+		return ;
+	}
+	if (_channels[channelIndex].getInvite())
+	{
+		cli.queueRespone(":server 473 " + cli.getNickName() + " " + channel + " :Cannot join channel (+i)\r\n");
+		return ;
+	}
+	if (_channels[channelIndex].getLimit() != -1 && _channels[channelIndex].getUsers() >= _channels[channelIndex].getLimit())
+	{
+		cli.queueRespone(":Server 471 " + cli.getNickName() + " " + channel + " :Cannot join channel (+l)\r\n");
+		return ;
+	}
+	cli.setChannelIndex(channelIndex);
 }
 
 void	Server::Nick(std::string cmd, Client &cli)
@@ -355,8 +368,8 @@ Client	&Server::findClient(std::string client)
 void	Server::Commands(std::string cmd, Client &cli)
 {
 	Command c = stringToCommand(cmd);
-	if (cmd.find("PING") == 0)
-		cli.queueRespone("PONG\r\n");
+	if (cmd.find("PING server") == 0)
+		cli.queueRespone("PONG server\r\n");
 	else
 		switch(c)
 		{
@@ -443,6 +456,7 @@ void Server::run()
 					std::string cmd;
 					while(cli.extractNextCommand(cmd))
 					{
+						std::cout << cli.getChannelIndex() << "\t\t" << cmd << std::endl;
 						if (cmd.empty())
 							continue;
 						if (cmd.find("CAP LS") == 0)//client will send request for a list of available capabilities
