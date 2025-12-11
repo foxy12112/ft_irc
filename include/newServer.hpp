@@ -24,6 +24,7 @@
 #include "Channel.hpp"
 
 enum Command{
+	CMD_CAP_LS,
 	CMD_KICK,
 	CMD_INVITE,
 	CMD_TOPIC,
@@ -33,6 +34,7 @@ enum Command{
 	CMD_NICK,
 	CMD_USER,
 	CMD_MSG,
+	CMD_WHOIS,
 	CMD_UNKNOWN
 };
 
@@ -71,36 +73,41 @@ class Server
 		void	Nick(std::string cmd, Client &cli);
 		void	User(std::string cmd, Client &cli);
 		void	Message(std::string cmd, Client &cli);
+		void	Whois(std::string cmd, Client &cli);
+		// helpers for checking name collisions
+		bool	isNameInUse(const std::string &name, bool checkNick, int requesterFd);
 		//helpers
 		void	sendToChannel(std::string msg, int channelIndex);
 		int		findChannel(std::string channel);
 		Client	&findClient(std::string client);
 		void	createChannel();
+
 };
 
 inline Command stringToCommand(const std::string &s){
+	std::istringstream iss(s);
+	std::string token;
+	if (!(iss >> token))
+		return CMD_UNKNOWN;
 
-	std::string cmd;
-	int i = 0;
-	for (i = 0; i < (int)s.size() && s[i] != ' ';i++)
-		cmd += s[i];
-	cmd += s[i];
-	static std::map<std::string, Command> table;
-	if (table.empty())
-	{
-		table["KICK "]			= CMD_KICK;
-		table["INVITE "]		= CMD_INVITE;
-		table["TOPIC "]			= CMD_TOPIC;
-		table["MODE "]			= CMD_MODE;
-		table["JOIN "]			= CMD_JOIN;
-		table["NICK "]			= CMD_NICK;
-		table["USER "]			= CMD_USER;
-		table["PRIVMSG "]		= CMD_MSG;
-	}
-	std::map<std::string, Command>::const_iterator it = table.find(cmd);
-	if (it != table.end())
-		return (it->second);
-	return (CMD_UNKNOWN);
+	std::string cmd = token + ' ';
+		static std::map<std::string, Command> table;
+		if (table.empty())
+		{
+			table["KICK "]			= CMD_KICK;
+			table["INVITE "]		= CMD_INVITE;
+			table["TOPIC "]			= CMD_TOPIC;
+			table["MODE "]			= CMD_MODE;
+			table["JOIN "]			= CMD_JOIN;
+			table["NICK "]			= CMD_NICK;
+			table["USER "]			= CMD_USER;
+			table["PRIVMSG "]		= CMD_MSG;
+			table["WHOIS "]         = CMD_WHOIS;
+		}
+		std::map<std::string, Command>::const_iterator it = table.find(cmd);
+		if (it != table.end())
+			return (it->second);
+		return (CMD_UNKNOWN);
 }
 
 

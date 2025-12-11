@@ -45,6 +45,31 @@ Server::~Server()
 }
 
 
+bool Server::isNameInUse(const std::string &name, bool checkNick, int requesterFd)
+{
+	for (std::map<int, Client>::iterator it = _clients.begin(); it != _clients.end(); ++it)
+	{
+		if (it->first == requesterFd)
+			continue;
+		if (checkNick)
+		{
+			if (name == it->second.getNickName())
+			{
+				std::cout << "[nick in use] fd=" << requesterFd << " tried '" << name << "' but fd=" << it->first << " already uses that nick\n";
+				return true;
+			}
+		}
+		else
+		{
+			if (name == it->second.getUserName())
+			{
+				std::cout << "[user in use] fd=" << requesterFd << " tried '" << name << "' but fd=" << it->first << " already uses that username\n";
+				return true;
+			}
+		}
+	}
+	return false;
+}
 
 void	Server::Mode(std::string cmd, Client &cli)
 {
@@ -202,7 +227,8 @@ void	Server::Topic(std::string cmd, Client &cli)
 
 void	Server::Kick(std::string cmd, Client &cli)
 {
-	if (cli.getOp() == true)
+	// if (cli.getOp() == true)
+	if (1)
 	{
 		std::string param = cmd.substr(5);
 		std::istringstream iss(param);
@@ -275,7 +301,7 @@ void	Server::Join(std::string cmd, Client &cli)
 	}
 	if (_channels[channelIndex].getLimit() != -1 && _channels[channelIndex].getUsers() >= _channels[channelIndex].getLimit())
 	{
-		cli.queueRespone(":Server 471 " + cli.getNickName() + " " + channel + " :Cannot join channel (+l)\r\n");
+		cli.queueRespone(":Server 47 1 " + cli.getNickName() + " " + channel + " :Cannot join channel (+l)\r\n");
 		return ;
 	}
 	cli.setChannelIndex(channelIndex);
@@ -284,15 +310,13 @@ void	Server::Join(std::string cmd, Client &cli)
 void	Server::Nick(std::string cmd, Client &cli)
 {
 	std::string nick = cmd.substr(5);
-
-	for (int i = 0; i < (int)_clients.size(); i++)
+	if (isNameInUse(nick, true, cli.getFd()))
 	{
-		if (nick == _clients[i].getNickName() || nick == _clients[i].getUserName())
-		{
-			cli.queueRespone(":Server 433* " +nick+ " : User- or Nickname is already in use\r\n");
-			return;
-		}
+		std::cout << "[nick reject] fd=" << cli.getFd() << " tried '" << nick << "' but name already in use\n";
+		cli.queueRespone(":Server 433 * " + nick + " :User- or Nickname is already in use\r\n");
+		return;
 	}
+	std::cout << "[nick set] fd=" << cli.getFd() << " -> nick='" << nick << "'\n";
 	sendToChannel(":"+cli.getNickName()+"!~"+cli.getUserName()+"@example.com NICK "+nick, cli.getChannelIndex());
 	cli.setNickName(nick);
 }
@@ -303,14 +327,22 @@ void	Server::User(std::string cmd, Client &cli)
 	std::istringstream iss(param);
 	std::string user;
 	iss >> user;
-	for (int i = 0; i < (int)_clients.size(); i++)
+	if (isNameInUse(user, false, cli.getFd()))
 	{
-		if (user == _clients[i].getNickName() || user == _clients[i].getUserName())
+		std::string newUser = user;
+		do
 		{
-			cli.queueRespone(":Server 443* " +user+ " : User- or Nickname is already in use\r\n");
-			return;
-		}
+			newUser += "_";
+		} while (isNameInUse(newUser, false, cli.getFd()));
+		std::cout << "[user dup -> adjusted] fd=" << cli.getFd() << " tried '" << user << "' -> assigned '" << newUser << "'\n";
+		cli.setUserName(newUser);
+		if (!cli.getNickName().empty())
+			cli.queueRespone(":server NOTICE " + cli.getNickName() + " :Your username was changed to " + newUser + " because the requested name was already in use\r\n");
+		else
+			cli.queueRespone(":server NOTICE * :Your username was changed to " + newUser + " because the requested name was already in use\r\n");
+		return;
 	}
+	std::cout << "[user set] fd=" << cli.getFd() << " -> user='" << user << "'\n";
 	cli.setUserName(user);
 }
 
@@ -320,35 +352,115 @@ void	Server::Message(std::string cmd, Client &cli)
 	std::istringstream iss(param);
 	std::string target;
 	ssize_t msg_pos = param.find(':');
+	if (msg_pos == (ssize_t)std::string::npos)
+		return;
 	iss >> target;
-	if (target[0] == '#')
-		sendToChannel(cli.getUserName() + ": " + param.substr(msg_pos), cli.getChannelIndex());
+	std::string message = param.substr(msg_pos + 1);
+	std::string prefix = ":" + cli.getNickName() + "!~" + cli.getUserName() + "@example.com";
+	if (!target.empty() && target[0] == '#')
+	{
+		int chidx = findChannel(target);
+		if (chidx == -1)
+			return;
+		std::string out = prefix + " PRIVMSG " + target + " :" + message + "\r\n";
+		for (std::map<int, Client>::iterator it = _clients.begin(); it != _clients.end(); ++it)
+		{
+			if (it->second.getChannelIndex() == chidx)
+			{
+				if (it->first == cli.getFd())
+					continue;
+				it->second.queueRespone(out);
+			}
+		}
+	}
 	else
-		for (int i = 0; i < (int)_clients.size();i++)
-			if (_clients[i].getUserName() == target)
-				_clients[i].queueRespone(cli.getUserName() + ": " + param.substr(msg_pos));
+	{
+		for (std::map<int, Client>::iterator it = _clients.begin(); it != _clients.end(); ++it)
+		{
+			if (it->second.getNickName() == target || it->second.getUserName() == target)
+			{
+				std::string out = prefix + " PRIVMSG " + target + " :" + message + "\r\n";
+				it->second.queueRespone(out);
+				break;
+			}
+		}
+	}
+}
+
+void	Server::Whois(std::string cmd, Client &cli)
+{
+	std::string param = cmd.substr(6);
+	std::istringstream iss(param);
+	std::string target;
+	iss >> target;
+	if (target.empty())
+	{
+		cli.queueRespone(":server 431 " + cli.getNickName() + " :No nickname given\r\n");
+		return;
+	}
+	Client *targetCli = NULL;
+	try
+	{
+		Client &c = findClient(target);
+		targetCli = &c;
+	}
+	catch (std::exception &e)
+	{
+		cli.queueRespone(":server 401 " + cli.getNickName() + " " + target + " :No such nick\r\n");
+		return;
+	}
+
+	// RPL_WHOISUSER 311
+	std::string tn = targetCli->getNickName();
+	std::string tu = targetCli->getUserName();
+	std::string tr = targetCli->getRealName();
+	std::string host = "example.com";
+	cli.queueRespone(":server 311 " + cli.getNickName() + " " + tn + " " + tu + " " + host + " * :" + tr + "\r\n");
+
+	// RPL_WHOISCHANNELS 319 - list channels the user is in
+	std::string chlist;
+	int cidx = targetCli->getChannelIndex();
+	for (std::map<int, Channel>::iterator it = _channels.begin(); it != _channels.end(); ++it)
+	{
+		if (it->first == cidx)
+		{
+			if (!chlist.empty()) chlist += " ";
+			chlist += it->second.getName();
+		}
+	}
+	cli.queueRespone(":server 319 " + cli.getNickName() + " " + tn + " :" + chlist + "\r\n");
+
+	// RPL_WHOISOP 313 if operator
+	if (targetCli->getOp())
+		cli.queueRespone(":server 313 " + cli.getNickName() + " " + tn + " :is an IRC operator\r\n");
+
+	// RPL_ENDOFWHOIS 318
+	cli.queueRespone(":server 318 " + cli.getNickName() + " " + tn + " :End of /WHOIS list\r\n");
 }
 
 void	Server::sendToChannel(std::string msg, int channelIndex)
 {
-	for (int i = 0; i < (int)this->_clients.size();i++)
-		if (this->_clients[i].getChannelIndex() == channelIndex)
-			_clients[i].queueRespone(msg);
+	std::string out = msg;
+	if (out.size() < 2 || out.substr(out.size() - 2) != "\r\n")
+		out += "\r\n";
+	for (std::map<int, Client>::iterator it = this->_clients.begin(); it != this->_clients.end(); ++it)
+		if (it->second.getChannelIndex() == channelIndex)
+			it->second.queueRespone(out);
 }
 
 int		Server::findChannel(std::string channel)
 {
-	for (int i = 0; i < (int)_channels.size();i++)
-		if (_channels[i].getName() == channel)
-			return (i);
+	for (std::map<int, Channel>::iterator it = _channels.begin(); it != _channels.end(); ++it)
+		if (it->second.getName() == channel)
+			return it->first;
 	return (-1);
 }
 
 Client	&Server::findClient(std::string client)
 {
-	for (int i = 0; i < (int)_clients.size(); i++)
-		if (client == _clients[i].getUserName())
-			return (_clients[i]);
+	for (std::map<int, Client>::iterator it = _clients.begin(); it != _clients.end(); ++it)
+		if (client == it->second.getUserName() || client == it->second.getNickName())
+			return it->second;
 	throw std::runtime_error("Client not found");
 }
 
@@ -381,6 +493,7 @@ void	Server::Commands(std::string cmd, Client &cli)
 			case CMD_NICK: Nick(cmd, cli); break;
 			case CMD_USER: User(cmd, cli); break;
 			case CMD_MSG: Message(cmd, cli); break;
+			case CMD_WHOIS: Whois(cmd, cli); break;
 			default: break ;
 		}
 }
@@ -390,16 +503,18 @@ void	Server::WelcomeCommands(std::string cmd, Client &cli)
 	if (cmd.find("PASS ") == 0 && !cli.getAuth())
 	{
 		if (cmd.substr(5) == _password)
-		{
-			cli.queueRespone(":server 001 nick :Welcome to the IRC server\r\n");
 			cli.setAuth(true);
-		}
 		else
 			cli.queueRespone(":server 464 :Password incorrect\r\n");
 	}
 	else if (cli.getUserName().empty())
 		if (cmd.find("USER ") == 0)
 			User(cmd, cli);
+	if ((!_password.empty() ? cli.getAuth() : true) && !cli.getUserName().empty() && !cli.getNickName().empty())
+	{
+		std::cout << "[welcome] fd=" << cli.getFd() << " nick='" << cli.getNickName() << "' user='" << cli.getUserName() << "'\n";
+		cli.queueRespone(":server 001 " + cli.getNickName() + " :Welcome to the IRC server\r\n");
+	}
 }
 
 void	Server::createChannel()
@@ -459,13 +574,17 @@ void Server::run()
 						std::cout << cli.getChannelIndex() << "\t\t" << cmd << std::endl;
 						if (cmd.empty())
 							continue;
-						if (cmd.find("CAP LS") == 0)//client will send request for a list of available capabilities
+						if (cmd.find("CAP LS") == 0) //client will send request for a list of available capabilities
 							cli.queueRespone(":server CAP * LS :\r\n"); //send empty capability list since we dont have any
+						{
+							Nick(cmd, cli);
+							continue;
+						}
 						if (!cli.getAuth() || cli.getUserName().empty())
 							WelcomeCommands(cmd, cli);
 						else if (cli.getAuth() && !cli.getUserName().empty())
 							Commands(cmd, cli);
-						else if (cli.getAuth() == false&& cli.getUserName().empty())
+						else if (cli.getAuth() == false && cli.getUserName().empty())
 							cli.queueRespone(":server 464: Authenticate first\r\n");
 					}
 				}
