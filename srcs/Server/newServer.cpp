@@ -307,18 +307,26 @@ void	Server::Join(std::string cmd, Client &cli)
 	cli.setChannelIndex(channelIndex);
 }
 
-void	Server::Nick(std::string cmd, Client &cli)
+void    Server::Nick(std::string cmd, Client &cli)
 {
-	std::string nick = cmd.substr(5);
-	if (isNameInUse(nick, true, cli.getFd()))
-	{
-		std::cout << "[nick reject] fd=" << cli.getFd() << " tried '" << nick << "' but name already in use\n";
-		cli.queueRespone(":Server 433 * " + nick + " :User- or Nickname is already in use\r\n");
-		return;
-	}
-	std::cout << "[nick set] fd=" << cli.getFd() << " -> nick='" << nick << "'\n";
-	sendToChannel(":"+cli.getNickName()+"!~"+cli.getUserName()+"@127.0.0.1 NICK "+nick, cli.getChannelIndex());
-	cli.setNickName(nick);
+    std::string nick = cmd.substr(5);
+    if (isNameInUse(nick, true, cli.getFd()))
+    {
+        std::string newNick = nick;
+        do {
+            newNick += "_";
+        } while (isNameInUse(newNick, true, cli.getFd()));
+        std::cout << "[nick dup -> adjusted] fd=" << cli.getFd() << " tried '" << nick << "' -> assigned '" << newNick << "'\n";
+        cli.setNickName(newNick);
+        if (!cli.getUserName().empty())
+            cli.queueRespone(":server NOTICE " + cli.getNickName() + " :Your nickname was changed to " + newNick + " because the requested nick was already in use\r\n");
+        else
+            cli.queueRespone(":server NOTICE * :Your nickname was changed to " + newNick + " because the requested nick was already in use\r\n");
+        return;
+    }
+    std::cout << "[nick set] fd=" << cli.getFd() << " -> nick='" << nick << "'\n";
+    sendToChannel(":"+cli.getNickName()+"!~"+cli.getUserName()+"@127.0.0.1 NICK "+nick, cli.getChannelIndex());
+    cli.setNickName(nick);
 }
 
 void	Server::User(std::string cmd, Client &cli)
@@ -512,12 +520,10 @@ void	Server::WelcomeCommands(std::string cmd, Client &cli)
 	else if (cli.getUserName().empty())
 		if (cmd.find("USER ") == 0)
 			User(cmd, cli);
-	if (cli.getNickName().empty())
-		if (cmd.find("NICK ") == 0)
-			Nick(cmd, cli);
 	if ((!_password.empty() ? cli.getAuth() : true) && !cli.getUserName().empty() && !cli.getNickName().empty())
 	{
 		std::cout << "[welcome] fd=" << cli.getFd() << " nick='" << cli.getNickName() << "' user='" << cli.getUserName() << "'\n";
+		cli.queueRespone(":server 001 " + cli.getNickName() + " :Welcome to the IRC server\r\n");
 	}
 }
 
@@ -580,6 +586,12 @@ void Server::run()
 							continue;
 						if (cmd.find("CAP LS") == 0) //client will send request for a list of available capabilities
 							cli.queueRespone(":server CAP * LS :\r\n"); //send empty capability list since we dont have any
+						if (cmd.find("NICK ") == 0)
+						{
+							Nick(cmd, cli);
+							continue;
+						}
+						//
 						if (cmd.find("CAP END") == 0 && !cli.getNickName().empty() && !cli.getUserName().empty() && cli.getAuth())
 						{
 							cli.queueRespone(":server 001 " + cli.getNickName() + " :Welcome to the IRC server\r\n");
@@ -587,6 +599,7 @@ void Server::run()
 							cli.queueRespone(":server 003 " + cli.getNickName() + " :This server was created today\r\n");
 							cli.queueRespone(":server 004 " + cli.getUserName() + " servername 1.0 * *\r\n");
 						}
+						//
 						if (!cli.getAuth() || cli.getUserName().empty())
 							WelcomeCommands(cmd, cli);
 						else if (cli.getAuth() && !cli.getUserName().empty())
@@ -620,6 +633,3 @@ void Server::run()
 		}
 	}
 }
-
-//TODO joining with nickname same as old nickname causes error, client immedietly leaves server
-//TODO inviting needs to be finished, invite request visible at invited client, response not acccepted
