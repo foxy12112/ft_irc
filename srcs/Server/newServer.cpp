@@ -301,7 +301,7 @@ void	Server::Join(std::string cmd, Client &cli)
 	}
 	if (_channels[channelIndex].getLimit() != -1 && _channels[channelIndex].getUsers() >= _channels[channelIndex].getLimit())
 	{
-		cli.queueRespone(":Server 47 1 " + cli.getNickName() + " " + channel + " :Cannot join channel (+l)\r\n");
+		cli.queueRespone(":Server 471 " + cli.getNickName() + " " + channel + " :Cannot join channel (+l)\r\n");
 		return ;
 	}
 	cli.setChannelIndex(channelIndex);
@@ -317,7 +317,7 @@ void	Server::Nick(std::string cmd, Client &cli)
 		return;
 	}
 	std::cout << "[nick set] fd=" << cli.getFd() << " -> nick='" << nick << "'\n";
-	sendToChannel(":"+cli.getNickName()+"!~"+cli.getUserName()+"@example.com NICK "+nick, cli.getChannelIndex());
+	sendToChannel(":"+cli.getNickName()+"!~"+cli.getUserName()+"@127.0.0.1 NICK "+nick, cli.getChannelIndex());
 	cli.setNickName(nick);
 }
 
@@ -480,8 +480,10 @@ Client	&Server::findClient(std::string client)
 void	Server::Commands(std::string cmd, Client &cli)
 {
 	Command c = stringToCommand(cmd);
+	if (cli.getInvited() == true)
+		wasInvited(cmd, cli);
 	if (cmd.find("PING server") == 0)
-		cli.queueRespone("PONG server\r\n");
+		cli.queueRespone("PONG :server\r\n");
 	else
 		switch(c)
 		{
@@ -510,10 +512,12 @@ void	Server::WelcomeCommands(std::string cmd, Client &cli)
 	else if (cli.getUserName().empty())
 		if (cmd.find("USER ") == 0)
 			User(cmd, cli);
+	if (cli.getNickName().empty())
+		if (cmd.find("NICK ") == 0)
+			Nick(cmd, cli);
 	if ((!_password.empty() ? cli.getAuth() : true) && !cli.getUserName().empty() && !cli.getNickName().empty())
 	{
 		std::cout << "[welcome] fd=" << cli.getFd() << " nick='" << cli.getNickName() << "' user='" << cli.getUserName() << "'\n";
-		cli.queueRespone(":server 001 " + cli.getNickName() + " :Welcome to the IRC server\r\n");
 	}
 }
 
@@ -576,9 +580,12 @@ void Server::run()
 							continue;
 						if (cmd.find("CAP LS") == 0) //client will send request for a list of available capabilities
 							cli.queueRespone(":server CAP * LS :\r\n"); //send empty capability list since we dont have any
+						if (cmd.find("CAP END") == 0 && !cli.getNickName().empty() && !cli.getUserName().empty() && cli.getAuth())
 						{
-							Nick(cmd, cli);
-							continue;
+							cli.queueRespone(":server 001 " + cli.getNickName() + " :Welcome to the IRC server\r\n");
+							cli.queueRespone(":server 002 " + cli.getNickName() + " :Your host is servername, running version 1.0\r\n");
+							cli.queueRespone(":server 003 " + cli.getNickName() + " :This server was created today\r\n");
+							cli.queueRespone(":server 004 " + cli.getUserName() + " servername 1.0 * *\r\n");
 						}
 						if (!cli.getAuth() || cli.getUserName().empty())
 							WelcomeCommands(cmd, cli);
@@ -613,3 +620,6 @@ void Server::run()
 		}
 	}
 }
+
+//TODO joining with nickname same as old nickname causes error, client immedietly leaves server
+//TODO inviting needs to be finished, invite request visible at invited client, response not acccepted
