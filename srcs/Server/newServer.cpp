@@ -397,7 +397,9 @@ void	Server::Message(std::string cmd, Client &cli)
 
 void	Server::Whois(std::string cmd, Client &cli)
 {
-	std::string param = cmd.substr(6);
+	// Extract target safely even when WHOIS is sent without arguments
+	size_t spacePos = cmd.find(' ');
+	std::string param = (spacePos == std::string::npos || spacePos + 1 >= cmd.size()) ? std::string() : cmd.substr(spacePos + 1);
 	std::istringstream iss(param);
 	std::string target;
 	iss >> target;
@@ -417,33 +419,32 @@ void	Server::Whois(std::string cmd, Client &cli)
 		cli.queueRespone(":server 401 " + cli.getNickName() + " " + target + " :No such nick\r\n");
 		return;
 	}
+		// RPL_WHOISUSER 311
+		std::string tn = targetCli->getNickName();
+		std::string tu = targetCli->getUserName();
+		std::string tr = targetCli->getRealName();
+		std::string host = "example.com";
+		cli.queueRespone(":server 311 " + cli.getNickName() + " " + tn + " " + tu + " " + host + " * :" + tr + "\r\n");
 
-	// RPL_WHOISUSER 311
-	std::string tn = targetCli->getNickName();
-	std::string tu = targetCli->getUserName();
-	std::string tr = targetCli->getRealName();
-	std::string host = "example.com";
-	cli.queueRespone(":server 311 " + cli.getNickName() + " " + tn + " " + tu + " " + host + " * :" + tr + "\r\n");
-
-	// RPL_WHOISCHANNELS 319 - list channels the user is in
-	std::string chlist;
-	int cidx = targetCli->getChannelIndex();
-	for (std::map<int, Channel>::iterator it = _channels.begin(); it != _channels.end(); ++it)
-	{
-		if (it->first == cidx)
+		// RPL_WHOISCHANNELS 319 - list channels the user is in
+		std::string chlist;
+		int cidx = targetCli->getChannelIndex();
+		for (std::map<int, Channel>::iterator it = _channels.begin(); it != _channels.end(); ++it)
 		{
-			if (!chlist.empty()) chlist += " ";
-			chlist += it->second.getName();
+			if (it->first == cidx)
+			{
+				if (!chlist.empty()) chlist += " ";
+				chlist += it->second.getName();
+			}
 		}
-	}
-	cli.queueRespone(":server 319 " + cli.getNickName() + " " + tn + " :" + chlist + "\r\n");
+		cli.queueRespone(":server 319 " + cli.getNickName() + " " + tn + " :" + chlist + "\r\n");
 
-	// RPL_WHOISOP 313 if operator
-	if (targetCli->getOp())
-		cli.queueRespone(":server 313 " + cli.getNickName() + " " + tn + " :is an IRC operator\r\n");
+		// RPL_WHOISOP 313 if operator
+		if (targetCli->getOp())
+			cli.queueRespone(":server 313 " + cli.getNickName() + " " + tn + " :is an IRC operator\r\n");
 
-	// RPL_ENDOFWHOIS 318
-	cli.queueRespone(":server 318 " + cli.getNickName() + " " + tn + " :End of /WHOIS list\r\n");
+		// RPL_ENDOFWHOIS 318
+		cli.queueRespone(":server 318 " + cli.getNickName() + " " + tn + " :End of /WHOIS list\r\n");
 }
 
 void	Server::sendToChannel(std::string msg, int channelIndex)
@@ -488,8 +489,8 @@ Client	&Server::findClient(std::string client)
 void	Server::Commands(std::string cmd, Client &cli)
 {
 	Command c = stringToCommand(cmd);
-	if (cli.getInvited() == true)
-		wasInvited(cmd, cli);
+	// if (cli.getInvited() == true)
+	// 	wasInvited(cmd, cli);
 	if (cmd.find("PING server") == 0)
 		cli.queueRespone("PONG :server\r\n");
 	else
@@ -592,13 +593,13 @@ void Server::run()
 							continue;
 						}
 						//
-						if (cmd.find("CAP END") == 0 && !cli.getNickName().empty() && !cli.getUserName().empty() && cli.getAuth())
-						{
-							cli.queueRespone(":server 001 " + cli.getNickName() + " :Welcome to the IRC server\r\n");
-							cli.queueRespone(":server 002 " + cli.getNickName() + " :Your host is servername, running version 1.0\r\n");
-							cli.queueRespone(":server 003 " + cli.getNickName() + " :This server was created today\r\n");
-							cli.queueRespone(":server 004 " + cli.getUserName() + " servername 1.0 * *\r\n");
-						}
+						// if (cmd.find("CAP END") == 0 && !cli.getNickName().empty() && !cli.getUserName().empty() && cli.getAuth())
+						// {
+						// 	cli.queueRespone(":server 001 " + cli.getNickName() + " :Welcome to the IRC server\r\n");
+						// 	cli.queueRespone(":server 002 " + cli.getNickName() + " :Your host is servername, running version 1.0\r\n");
+						// 	cli.queueRespone(":server 003 " + cli.getNickName() + " :This server was created today\r\n");
+						// 	cli.queueRespone(":server 004 " + cli.getUserName() + " servername 1.0 * *\r\n");
+						// }
 						//
 						if (!cli.getAuth() || cli.getUserName().empty())
 							WelcomeCommands(cmd, cli);

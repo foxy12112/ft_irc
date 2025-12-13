@@ -32,7 +32,7 @@ NC			:= \033[0m
 
 COMPILER	=	c++
 INCLUDES	=	-Iinclude
-CFLAGS		=	-std=c++98 -g -Wall -Wextra -Werror -fsanitize=address
+CFLAGS		=	-std=c++98 -g -Wall -Wextra -Werror
 ERROR_FILE	=	error.log
 
 #################################################################################################
