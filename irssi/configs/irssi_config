@@ -1,0 +1,20 @@
+
+settings = {
+  core = { real_name = "userme"; user_name = "userme"; nick = "nickme"; };
+
+  servers = {
+    server0 = {
+      address = "127.0.0.1";
+      port = "6667";
+      autoconnect = "yes";
+      ssl = "no";
+      password = "start";
+      chatnet = "local";
+    };
+  };
+
+  networks = { local = { name = "local"; }; };
+
+  channels = { server0 = { "#General" = { autojoin = "yes"; }; }; };
+};
+

@@ -1,0 +1,170 @@
+001 RPL_WELCOME - Welcome message
+002 RPL_YOURHOST - Host and version info
+003 RPL_CREATED - Server creation date
+004 RPL_MYINFO - Server details and supported features
+005 RPL_ISUPPORT (Ext) - Server capability declarations
+006 RPL_MAP (Ext) - Server map line
+007 RPL_ENDOFMAP (Ext) - End of MAP output
+008 RPL_SNOMASK (Ext) - Server notice mask info
+009 RPL_STATSCONN (Ext) - Connection stats summary
+010 RPL_BOUNCE (Ext) - Alternate server information
+200 RPL_TRACELINK - TRACE link
+201 RPL_TRACECONNECT - TRACE connect
+202 RPL_TRACEHANDSHAKE - TRACE handshake
+203 RPL_TRACEUNKNOWN - TRACE unknown
+204 RPL_TRACEOPERATOR - TRACE operator
+205 RPL_TRACEUSER - TRACE user
+206 RPL_TRACESERVER - TRACE server
+207 RPL_TRACESERVICE - TRACE service
+208 RPL_TRACENEWTYPE - TRACE new type
+209 RPL_TRACECLASS - TRACE class
+210 RPL_STATS (Ext) - Generic stats reply
+211 RPL_STATSLINKINFO - Stats link info
+212 RPL_STATSCOMMANDS - Command usage stats
+213 RPL_STATSCLINE - C-line stats
+214 RPL_STATSNLINE - N-line stats
+215 RPL_STATSILINE - I-line stats
+216 RPL_STATSKLINE - K-line stats
+217 RPL_STATSQLINE (Ext) - Q-line stats
+218 RPL_STATSYLINE - Y-line stats
+219 RPL_ENDOFSTATS - End of STATS output
+241 RPL_STATSLLINE - L-line
+242 RPL_STATSUPTIME - Uptime
+243 RPL_STATSOLINE - O-line
+244 RPL_STATSHLINE - H-line
+250 RPL_STATSCONN - Connection stats summary
+251 RPL_LUSERCLIENT - Lusers header
+252 RPL_LUSEROP - Number of ops
+253 RPL_LUSERUNKNOWN - Unknown connections
+254 RPL_LUSERCHANNELS - Channels count
+255 RPL_LUSERME - Local server counts
+256 RPL_ADMINME - ADMIN header
+257 RPL_ADMINLOC1 - Admin location line 1
+258 RPL_ADMINLOC2 - Admin location line 2
+259 RPL_ADMINEMAIL - Admin email line
+301 RPL_AWAY - Away message
+302 RPL_USERHOST - Userhost response list
+303 RPL_ISON - ISON response list
+311 RPL_WHOISUSER - WHOIS user info
+312 RPL_WHOISSERVER - WHOIS server info
+313 RPL_WHOISOPERATOR - WHOIS shows user is IRC operator
+314 RPL_WHOWASUSER - WHOWAS user info
+315 RPL_ENDOFWHO - End of WHO list
+316 RPL_WHOISCHANOP (Ext) - WHOIS channel op
+317 RPL_WHOISIDLE - WHOIS idle time + signon
+318 RPL_ENDOFWHOIS - End of WHOIS
+319 RPL_WHOISCHANNELS - WHOIS channel list
+320 RPL_WHOISACCOUNT (Ext) - Account name
+321 RPL_LISTSTART - Start of LIST
+322 RPL_LIST - Channel list entry
+323 RPL_LISTEND - End of LIST
+324 RPL_CHANNELMODEIS - Channel modes
+325 RPL_UNIQOPIS (Ext) - Unique op for channel
+331 RPL_NOTOPIC - Channel has no topic
+332 RPL_TOPIC - Channel topic
+333 RPL_TOPICWHOTIME - Topic setter and time
+341 RPL_INVITING - Invitation confirmation
+346 RPL_INVITELIST (Ext) - Invite list entry
+347 RPL_ENDOFINVITELIST - End of invite list
+348 RPL_EXCEPTLIST (Ext) - Exception list entry
+349 RPL_ENDOFEXCEPTLIST - End of exception list
+351 RPL_VERSION - Server version
+352 RPL_WHOREPLY - WHO reply line
+353 RPL_NAMREPLY - Names list reply
+354 RPL_WHOSPCRPL (Ext) - Extended WHO reply
+364 RPL_LINKS - LINKS list entry
+365 RPL_ENDOFLINKS - End of LINKS list
+366 RPL_ENDOFNAMES - End of NAMES list
+367 RPL_BANLIST - Ban list entry
+368 RPL_ENDOFBANLIST - End of ban list
+369 RPL_ENDOFWHOWAS - End of WHOWAS
+371 RPL_INFO - INFO line
+372 RPL_MOTD - MOTD line
+373 RPL_INFOSTART (Ext) - Start of INFO
+374 RPL_ENDOFINFO - End of INFO
+375 RPL_MOTDSTART - Start of MOTD
+376 RPL_ENDOFMOTD - End of MOTD
+377 RPL_MOTD2 (Ext) - Additional MOTD
+378 RPL_WHOISHOST (Ext) - WHOIS host info
+379 RPL_WHOISMODES (Ext) - WHOIS user modes
+381 RPL_YOUREOPER - OPER success
+382 RPL_REHASHING - Rehashing confirmation
+383 RPL_YOURESERVICE (Ext) - You are a service
+384 RPL_MYPORTIS (Ext) - Server listening port
+391 RPL_TIME - Server time
+392 RPL_USERSSTART - Users list start
+393 RPL_USERS - Users list entry
+394 RPL_ENDOFUSERS - End of users list
+395 RPL_NOUSERS - No users returned
+401 ERR_NOSUCHNICK - No such nick
+402 ERR_NOSUCHSERVER - No such server
+403 ERR_NOSUCHCHANNEL - No such channel
+404 ERR_CANNOTSENDTOCHAN - Cannot send to channel
+405 ERR_TOOMANYCHANNELS - Too many channels joined
+406 ERR_WASNOSUCHNICK - Was no such nick
+407 ERR_TOOMANYTARGETS - Too many targets
+409 ERR_NOORIGIN - No origin specified
+411 ERR_NORECIPIENT - No recipient given
+412 ERR_NOTEXTTOSEND - No text to send
+413 ERR_NOTOPLEVEL - No toplevel domain
+414 ERR_WILDTOPLEVEL - Wildcard in toplevel domain
+415 ERR_BADMASK - Bad server mask
+421 ERR_UNKNOWNCOMMAND - Unknown command
+422 ERR_NOMOTD - No MOTD set
+423 ERR_NOADMININFO - No admin info
+424 ERR_FILEERROR - File error
+431 ERR_NONICKNAMEGIVEN - No nickname given
+432 ERR_ERRONEUSNICKNAME - Erroneous nickname
+433 ERR_NICKNAMEINUSE - Nickname in use
+436 ERR_NICKCOLLISION - Nick collision
+437 ERR_UNAVAILRESOURCE - Resource unavailable
+438 ERR_NICKTOOFAST (Ext) - Nick change too fast
+441 ERR_USERNOTINCHANNEL - User not in channel
+442 ERR_NOTONCHANNEL - Not on channel
+443 ERR_USERONCHANNEL - User already on channel
+444 ERR_NOLOGIN - User not logged in
+445 ERR_SUMMONDISABLED - SUMMON disabled
+446 ERR_USERSDISABLED - USERS disabled
+451 ERR_NOTREGISTERED - Not registered
+461 ERR_NEEDMOREPARAMS - Need more parameters
+462 ERR_ALREADYREGISTERED - Already registered
+463 ERR_NOPERMFORHOST - No permission for host
+464 ERR_PASSWDMISMATCH - Password incorrect
+465 ERR_YOUREBANNEDCREEP - You are banned
+466 ERR_YOUWILLBEBANNED - You will be banned
+467 ERR_KEYSET - Channel key already set
+471 ERR_CHANNELISFULL - Channel is full
+472 ERR_UNKNOWNMODE - Unknown mode flag
+473 ERR_INVITEONLYCHAN - Invite-only channel
+474 ERR_BANNEDFROMCHAN - Banned from channel
+475 ERR_BADCHANNELKEY - Bad channel key
+476 ERR_BADCHANMASK - Bad channel mask
+477 ERR_NOCHANMODES - No channel modes / need privileges
+478 ERR_BANLISTFULL - Ban list full
+479 ERR_BADCHANNAME (Ext) - Invalid channel name
+481 ERR_NOPRIVILEGES - Permission denied (need IRCop)
+482 ERR_CHANOPRIVSNEEDED - Channel operator privileges needed
+483 ERR_CANTKILLSERVER - Cannot kill server
+484 ERR_RESTRICTED - Restricted connection
+485 ERR_UNIQOPPRIVSNEEDED - Need +u privileges
+486 ERR_NONONREG (Ext) - Non-registered users not allowed
+487 ERR_MSGSERVICES (Ext) - Messaging services only
+489 ERR_SECUREONLYCHAN (Ext) - Secure-only channel
+491 ERR_NOOPERHOST - No oper host
+492 ERR_NOSERVICEHOST (Ext) - No service host
+501 ERR_UMODEUNKNOWNFLAG - Unknown user mode flag
+502 ERR_USERSDONTMATCH - Users don't match
+900 RPL_LOGGEDIN - Logged in (SASL)
+901 RPL_LOGGEDOUT - Logged out (SASL)
+902 ERR_NICKLOCKED - Nick locked
+903 RPL_SASLSUCCESS - SASL success
+904 ERR_SASLFAIL - SASL failure
+905 ERR_SASLTOOLONG - SASL data too long
+906 ERR_SASLABORTED - SASL aborted
+907 ERR_SASLALREADY - SASL already in progress
+908 RPL_SASLMECHS - Supported SASL mechanisms
+711–799 WATCH/MONITOR (various)
+800–899 WATCH/MONITOR (variants)
+909+ Experimental / authentication numerics
+
+Sources: RFC 1459, RFC 2812, and common IRCd documentation (e.g., UnrealIRCd, InspIRCd, Charybdis).
