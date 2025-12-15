@@ -1,6 +1,6 @@
 
 settings = {
-  core = { real_name = "userme"; user_name = "userme"; nick = "nickme"; };
+  core = { real_name = "userme"; user_name = "userme"; nick = "nickme"; },
 
   servers = {
     server0 = {
