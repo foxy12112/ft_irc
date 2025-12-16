@@ -35,7 +35,8 @@ enum Command{
 	CMD_USER,
 	CMD_MSG,
 	CMD_WHOIS,
-	CMD_UNKNOWN
+	CMD_UNKNOWN,
+	CMD_OPER
 };
 
 class Server
@@ -74,6 +75,7 @@ class Server
 		void	User(std::string cmd, Client &cli);
 		void	Message(std::string cmd, Client &cli);
 		void	Whois(std::string cmd, Client &cli);
+		void	oper(std::string cmd);
 		// helpers for checking name collisions
 		bool	isNameInUse(const std::string &name, bool checkNick, int requesterFd);
 		//helpers
@@ -102,7 +104,8 @@ inline Command stringToCommand(const std::string &s){
 			table["NICK "]			= CMD_NICK;
 			table["USER "]			= CMD_USER;
 			table["PRIVMSG "]		= CMD_MSG;
-			table["WHOIS "]         = CMD_WHOIS;
+			table["WHOIS "]			= CMD_WHOIS;
+			table["OPER "]			= CMD_OPER;
 		}
 		std::map<std::string, Command>::const_iterator it = table.find(cmd);
 		if (it != table.end())

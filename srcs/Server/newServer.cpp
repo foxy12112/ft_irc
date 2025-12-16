@@ -196,12 +196,12 @@ void	Server::Mode(std::string cmd, Client &cli)
 void	Server::Topic(std::string cmd, Client &cli)
 {
 	std::string param;
-	std::istringstream iss(cmd.substr(6));
 	
 	if (cmd.size() == 5)
 		cli.queueRespone(_channels[cli.getChannelIndex()].getTopic());
 	else if (cli.getOp() == true || _channels[cli.getChannelIndex()].getTopicOp() == false) //check that topic can be changed by everyone or not, operators can always change topic
 	{
+		std::istringstream iss(cmd.substr(6));
 		iss >> param;
 		if (param == "-delete")//check if target should delete topic
 		{
@@ -225,28 +225,69 @@ void	Server::Topic(std::string cmd, Client &cli)
 	}
 }
 
-void	Server::Kick(std::string cmd, Client &cli)
+void Server::Kick(std::string cmd, Client &cli)
 {
-	// if (cli.getOp() == true)
-	if (1)
+	if (cli.getOp() == false)
 	{
-		std::string param = cmd.substr(5);
-		std::istringstream iss(param);
-		std::string target;
-		std::string reason;
-		size_t			reason_pos;
-		reason_pos = param.find(' ');
+		cli.queueRespone("481 " + cli.getNickName() + " :Permission Denied- You're not an IRC operator\r\n");
+		return;
+	}
 
-		if (reason_pos != std::string::npos)
-			reason = param.substr(reason_pos + 1);
+	std::string param = cmd.substr(5); // Remove "KICK "
+	std::istringstream iss(param);
+	std::string channel;
+	std::string targets;
+	std::string reason = "Womp Womp";
 
-		while(std::getline(iss, target, ','))
+	// Parse: KICK #channel user1,user2,user3 :optional reason
+	iss >> channel >> targets;
+	
+	// Get reason if provided (starts after ":")
+	size_t reason_pos = param.find(" :");
+	if (reason_pos != std::string::npos)
+		reason = param.substr(reason_pos + 2); // Skip " :"
+
+	// Validate channel exists
+	if (channel.empty() || channel[0] != '#')
+	{
+		cli.queueRespone("403 " + cli.getNickName() + " " + channel + " :No such channel\r\n");
+		return;
+	}
+
+	// Split targets by comma
+	std::istringstream target_stream(targets);
+	std::string target;
+	
+	while (std::getline(target_stream, target, ','))
+	{
+		// Trim whitespace
+		target.erase(0, target.find_first_not_of(" \t\r\n"));
+		target.erase(target.find_last_not_of(" \t\r\n") + 1);
+		
+		if (target.empty())
+			continue;
+
+		std::cout << "Kicking " << target << " from " << channel << " (reason: " << reason << ")" << std::endl;
+		
+		// Find the client to kick
+		try
 		{
-			findClient(target).queueRespone(reason);
+			Client &kickedClient = findClient(target);
+			
+			// Send KICK message to channel members
+			std::string kickMsg = ":" + cli.getNickName() + " KICK " + channel + " " + target + " :" + reason + "\r\n";
+			// broadcast kickMsg to all channel members
+			
+			kickedClient.queueRespone(kickMsg);
+			kickedClient.setChannelIndex(5);
+			kickedClient.queueRespone(":" + target + "!" + kickedClient.getUserName() + "@127.0.0.1 JOIN :" + "purgatory" + "\r\n");
+			// Remove client from channel here
+		}
+		catch (...)
+		{
+			cli.queueRespone("401 " + cli.getNickName() + " " + target + " :No such nick\r\n");
 		}
 	}
-	else
-		cli.queueRespone("you are not an operator\r\n");
 }
 
 void	Server::wasInvited(std::string cmd, Client &cli)
@@ -327,6 +368,23 @@ void    Server::Nick(std::string cmd, Client &cli)
     std::cout << "[nick set] fd=" << cli.getFd() << " -> nick='" << nick << "'\n";
     sendToChannel(":"+cli.getNickName()+"!~"+cli.getUserName()+"@127.0.0.1 NICK "+nick, cli.getChannelIndex());
     cli.setNickName(nick);
+}
+
+void	Server::oper(std::string cmd)
+{
+	std::string param = cmd.substr(5);
+	std::string name;
+	std::string password;
+	std::istringstream iss(param);
+	iss >> name;
+	iss >> password;
+	Client &clint = findClient(name);
+	if (password == "operpass")
+		clint.setOp(!clint.getOp());
+	else
+		clint.queueRespone(":server 464 "+clint.getNickName()+" :Password incorrect\r\n");
+	if (clint.getOp() == true)
+		clint.queueRespone(":server 381 " + clint.getNickName() + " :You are now an IRC operator\r\n");
 }
 
 void	Server::User(std::string cmd, Client &cli)
@@ -473,6 +531,8 @@ Client	&Server::findClient(std::string client)
 	throw std::runtime_error("Client not found");
 }
 
+
+
 //CAP LS needs :your.server.name CAP * LS : as response from server
 
 
@@ -505,6 +565,7 @@ void	Server::Commands(std::string cmd, Client &cli)
 			case CMD_USER: User(cmd, cli); break;
 			case CMD_MSG: Message(cmd, cli); break;
 			case CMD_WHOIS: Whois(cmd, cli); break;
+			case CMD_OPER: oper(cmd); break;
 			default: break ;
 		}
 }
@@ -592,15 +653,14 @@ void Server::run()
 							Nick(cmd, cli);
 							continue;
 						}
-						//
-						// if (cmd.find("CAP END") == 0 && !cli.getNickName().empty() && !cli.getUserName().empty() && cli.getAuth())
-						// {
-						// 	cli.queueRespone(":server 001 " + cli.getNickName() + " :Welcome to the IRC server\r\n");
-						// 	cli.queueRespone(":server 002 " + cli.getNickName() + " :Your host is servername, running version 1.0\r\n");
-						// 	cli.queueRespone(":server 003 " + cli.getNickName() + " :This server was created today\r\n");
-						// 	cli.queueRespone(":server 004 " + cli.getUserName() + " servername 1.0 * *\r\n");
-						// }
-						//
+						
+						if (cmd.find("CAP END") == 0 && !cli.getNickName().empty() && !cli.getUserName().empty() && cli.getAuth())
+						{
+							cli.queueRespone(":server 001 " + cli.getNickName() + " :Welcome to the IRC server\r\n");
+							cli.queueRespone(":server 002 " + cli.getNickName() + " :Your host is servername, running version 1.0\r\n");
+							cli.queueRespone(":server 003 " + cli.getNickName() + " :This server was created today\r\n");
+							cli.queueRespone(":server 004 " + cli.getUserName() + " servername 1.0 * *\r\n");
+						}
 						if (!cli.getAuth() || cli.getUserName().empty())
 							WelcomeCommands(cmd, cli);
 						else if (cli.getAuth() && !cli.getUserName().empty())
