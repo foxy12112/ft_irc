@@ -75,7 +75,7 @@ class Server
 		void	User(std::string cmd, Client &cli);
 		void	Message(std::string cmd, Client &cli);
 		void	Whois(std::string cmd, Client &cli);
-		void	oper(std::string cmd);
+		void	oper(std::string cmd, Client &cli);
 		// helpers for checking name collisions
 		bool	isNameInUse(const std::string &name, bool checkNick, int requesterFd);
 		//helpers

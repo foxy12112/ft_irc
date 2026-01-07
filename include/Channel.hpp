@@ -6,7 +6,7 @@
 /*   By: bszikora <bszikora@student.42helbronn.d    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/09 02:51:03 by bszikora          #+#    #+#             */
-/*   Updated: 2025/11/09 02:51:33 by bszikora         ###   ########.fr       */
+/*   Updated: 2026/01/07 19:08:38 by bszikora         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,6 +15,7 @@
 
 #include <iostream>
 #include <string>
+#include <set>
 
 class Server;
 
@@ -31,6 +32,12 @@ public:
 	int			getLimit(){return this->_limit;}
 	bool		getInvite(){return this->inviteOnly;}
 	int			getUsers(){return (this->_users);}
+
+	// Membership management
+	bool		hasMember(int fd) const { return _memberFds.find(fd) != _memberFds.end(); }
+	void		addMember(int fd) { _memberFds.insert(fd); }
+	void		removeMember(int fd) { _memberFds.erase(fd); }
+	const std::set<int>& members() const { return _memberFds; }
 
 	void		setUsers(int users){this->_users = users;}
 	void		setTopic(std::string topic){this->_topic = topic;}
@@ -61,6 +68,7 @@ private:
 	int			_limit;
 	int			_users;
 	int			_modes;
+	std::set<int> _memberFds;
 };
 
 #endif
