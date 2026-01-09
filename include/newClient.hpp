@@ -71,7 +71,7 @@ class Client
 		void	disconnect();
 		int		receive(Client Sender);
 		bool	extractNextCommand(std::string &cmd);
-		void	queueRespone(const std::string &resp);
+		void	queueResponse(const std::string &resp);
 		bool	flushSend();
 		bool	hasDataToSend();
 };

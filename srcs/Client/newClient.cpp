@@ -57,24 +57,28 @@ int		Client::receive(Client Sender)
 	ssize_t bytes = recv(_clientFd, buf, sizeof(buf) - 1, 0);
 	if (bytes > 0)
 	{
+		if (_inBuffer.size() + bytes > 512) // RFC max message size
+		{
+			queueResponse(":server 500 :Input too long\r\n");
+			return (bytes);
+		}
 		buf[bytes] = '\0';
 		_inBuffer.append(buf, bytes);
 	}
 	else if (bytes == 0)
 		_isConnected = false;
-	else
-		if (errno != EAGAIN && errno != EWOULDBLOCK)
+	else if (errno != EAGAIN && errno != EWOULDBLOCK)
 			_isConnected = false;
 	return (static_cast<int>(bytes));
 	//}
-	return(0);
+	// return(0);
 }
 
 bool	Client::extractNextCommand(std::string &cmd)
 {
-	size_t pos = _inBuffer.find('\n');
+	size_t pos = _inBuffer.find("\n");
 	if (pos == std::string::npos)
-		return false;
+		return (false);
 	cmd = _inBuffer.substr(0, pos);
 	_inBuffer.erase(0, pos + 1);
 	if (!cmd.empty() && cmd[cmd.size() - 1] == '\r')
@@ -82,7 +86,7 @@ bool	Client::extractNextCommand(std::string &cmd)
 	return (true);
 }
 
-void	Client::queueRespone(const std::string &resp)
+void	Client::queueResponse(const std::string &resp)
 {
 	_outBuffer += resp;
 }

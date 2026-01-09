@@ -102,7 +102,7 @@ void	Server::Mode(std::string cmd, Client &cli)
 
 	if (channelIndex < 0 || channelIndex >= (int)_channels.size())
 	{
-		cli.queueRespone(":server 403 " + cli.getNickName() + " : No such channel\r\n");
+		cli.queueResponse(":server 403 " + cli.getNickName() + " : No such channel\r\n");
 		return;
 	}
 
@@ -114,20 +114,20 @@ void	Server::Mode(std::string cmd, Client &cli)
 	iss2 >> mode;
 	if (mode.empty())
 	{
-		cli.queueRespone(":server 461 MODE : Not enough parameters\r\n");
+		cli.queueResponse(":server 461 MODE : Not enough parameters\r\n");
 		return;
 	}
 
 	if (mode == "-i")
 	{
 		channel.setInvite(!channel.getInvite());
-		cli.queueRespone(std::string("Channel: ") + channel.getName() + " has been set to " + (channel.getInvite() ? "invite only\r\n" : "no invite needed\r\n"));
+		cli.queueResponse(std::string("Channel: ") + channel.getName() + " has been set to " + (channel.getInvite() ? "invite only\r\n" : "no invite needed\r\n"));
 		return;
 	}
 	else if (mode == "-t")
 	{
 		channel.setTopicOp(!channel.getTopicOp());
-		cli.queueRespone(std::string("Channel: ") + channel.getName() + " Topic can be edited by " + (channel.getTopicOp() ? "operators only\r\n" : "anyone\r\n"));
+		cli.queueResponse(std::string("Channel: ") + channel.getName() + " Topic can be edited by " + (channel.getTopicOp() ? "operators only\r\n" : "anyone\r\n"));
 		return;
 	}
 	else if (mode == "-k")
@@ -138,13 +138,13 @@ void	Server::Mode(std::string cmd, Client &cli)
 		if (!pass.empty())
 		{
 			channel.setPass(pass);
-			cli.queueRespone("Channel: password has been set\r\n");
+			cli.queueResponse("Channel: password has been set\r\n");
 		}
 		else
 		{
 			// remove password
 			channel.setPass(std::string());
-			cli.queueRespone("Channel: password has been removed\r\n");
+			cli.queueResponse("Channel: password has been removed\r\n");
 		}
 		return;
 	}
@@ -154,7 +154,7 @@ void	Server::Mode(std::string cmd, Client &cli)
 		iss2 >> user;
 		if (user.empty())
 		{
-			cli.queueRespone(":server 461 MODE -o : Not enough parameters\r\n");
+			cli.queueResponse(":server 461 MODE -o : Not enough parameters\r\n");
 			return;
 		}
 		for (std::map<int, Client>::iterator it = _clients.begin(); it != _clients.end(); ++it)
@@ -163,8 +163,8 @@ void	Server::Mode(std::string cmd, Client &cli)
 			{
 				bool newOp = !it->second.getOp();
 				it->second.setOp(newOp);
-				it->second.queueRespone(std::string("Client: ") + it->second.getUserName() + (newOp ? " is now an operator\r\n" : " is not an operator anymore\r\n"));
-				cli.queueRespone(std::string("Client: ") + it->second.getUserName() + (newOp ? " is now an operator\r\n" : " is not an operator anymore\r\n"));
+				it->second.queueResponse(std::string("Client: ") + it->second.getUserName() + (newOp ? " is now an operator\r\n" : " is not an operator anymore\r\n"));
+				cli.queueResponse(std::string("Client: ") + it->second.getUserName() + (newOp ? " is now an operator\r\n" : " is not an operator anymore\r\n"));
 				break;
 			}
 		}
@@ -177,18 +177,18 @@ void	Server::Mode(std::string cmd, Client &cli)
 		if (limit.empty())
 		{
 			channel.setLimit(-1);
-			cli.queueRespone("Channel: Limit has been removed\r\n");
+			cli.queueResponse("Channel: Limit has been removed\r\n");
 		}
 		else
 		{
 			channel.setLimit(std::atoi(limit.c_str()));
-			cli.queueRespone(std::string("Channel: Limit has been set to ") + limit + "\r\n");
+			cli.queueResponse(std::string("Channel: Limit has been set to ") + limit + "\r\n");
 		}
 		return;
 	}
 	else
 	{
-		cli.queueRespone(":server 472 MODE : Unknown mode\r\n");
+		cli.queueResponse(":server 472 MODE : Unknown mode\r\n");
 		return;
 	}
 }
@@ -198,7 +198,7 @@ void	Server::Topic(std::string cmd, Client &cli)
 	std::string param;
 	
 	if (cmd.size() == 5)
-		cli.queueRespone(_channels[cli.getChannelIndex()].getTopic());
+		cli.queueResponse(_channels[cli.getChannelIndex()].getTopic());
 	else if (cli.getOp() == true || _channels[cli.getChannelIndex()].getTopicOp() == false) //check that topic can be changed by everyone or not, operators can always change topic
 	{
 		std::istringstream iss(cmd.substr(6));
@@ -206,6 +206,11 @@ void	Server::Topic(std::string cmd, Client &cli)
 		if (param == "-delete")//check if target should delete topic
 		{
 			iss >> param;
+			if (param.empty()) //deletes current channels topic if no channel specified
+			{
+				_channels[cli.getChannelIndex()].setTopic(NULL); 
+				return;
+			}
 			if (param[0] == '#')
 				_channels[findChannel(param)].setTopic(NULL);
 			else
@@ -216,12 +221,12 @@ void	Server::Topic(std::string cmd, Client &cli)
 			int channel = findChannel(param);
 			iss >> param;
 			if (param.empty())
-				cli.queueRespone(_channels[channel].getTopic());
+				cli.queueResponse(_channels[channel].getTopic());
 			else
 				_channels[channel].setTopic(cmd.substr(6 + _channels[channel].getName().size()));
 		}
 		else//gets current channeels topic
-			_channels[cli.getChannelIndex()].setTopic(cmd.substr(6));
+			_channels[cli.getChannelIndex()].setTopic(cmd.substr(7));
 	}
 }
 
@@ -229,7 +234,7 @@ void Server::Kick(std::string cmd, Client &cli)
 {
 	if (cli.getOp() == false)
 	{
-		cli.queueRespone("481 " + cli.getNickName() + " :Permission Denied- You're not an IRC operator\r\n");
+		cli.queueResponse("481 " + cli.getNickName() + " :Permission Denied- You're not an IRC operator\r\n");
 		return;
 	}
 
@@ -250,7 +255,7 @@ void Server::Kick(std::string cmd, Client &cli)
 	// Validate channel format
 	if (channel.empty() || channel[0] != '#')
 	{
-		cli.queueRespone("403 " + cli.getNickName() + " " + channel + " :No such channel\r\n");
+		cli.queueResponse("403 " + cli.getNickName() + " " + channel + " :No such channel\r\n");
 		return;
 	}
 
@@ -258,12 +263,12 @@ void Server::Kick(std::string cmd, Client &cli)
 	int channelIndex = findChannel(channel);
 	if (channelIndex == -1)
 	{
-		cli.queueRespone("403 " + cli.getNickName() + " " + channel + " :No such channel\r\n");
+		cli.queueResponse("403 " + cli.getNickName() + " " + channel + " :No such channel\r\n");
 		return;
 	}
 	if (!_channels[channelIndex].hasMember(cli.getFd()))
 	{
-		cli.queueRespone("442 " + cli.getNickName() + " " + channel + " :You're not on that channel\r\n");
+		cli.queueResponse("442 " + cli.getNickName() + " " + channel + " :You're not on that channel\r\n");
 		return;
 	}
 
@@ -288,7 +293,7 @@ void Server::Kick(std::string cmd, Client &cli)
 			Client &kickedClient = findClient(target);
 			if (!_channels[channelIndex].hasMember(kickedClient.getFd()))
 			{
-				cli.queueRespone("441 " + cli.getNickName() + " " + target + " " + channel + " :They aren't on that channel\r\n");
+				cli.queueResponse("441 " + cli.getNickName() + " " + target + " " + channel + " :They aren't on that channel\r\n");
 				continue;
 			}
 			
@@ -304,15 +309,15 @@ void Server::Kick(std::string cmd, Client &cli)
 			kickedClient.setChannelIndex(5);
 			_channels[5].addMember(kickedClient.getFd());
 			// Deliver explicit KICK and NOTICE to the kicked user
-			kickedClient.queueRespone(kickMsg);
-			kickedClient.queueRespone(":server NOTICE " + kickedClient.getNickName() + " :You were kicked from " + channel + " (" + reason + ")\r\n");
+			kickedClient.queueResponse(kickMsg);
+			kickedClient.queueResponse(":server NOTICE " + kickedClient.getNickName() + " :You were kicked from " + channel + " (" + reason + ")\r\n");
 			// Inform them of joining purgatory
-			kickedClient.queueRespone(":" + target + "!" + kickedClient.getUserName() + "@127.0.0.1 JOIN :" + "purgatory" + "\r\n");
+			kickedClient.queueResponse(":" + target + "!" + kickedClient.getUserName() + "@127.0.0.1 JOIN :" + "purgatory" + "\r\n");
 			// Remove client from channel here
 		}
 		catch (...)
 		{
-			cli.queueRespone("401 " + cli.getNickName() + " " + target + " :No such nick\r\n");
+			cli.queueResponse("401 " + cli.getNickName() + " " + target + " :No such nick\r\n");
 		}
 	}
 }
@@ -330,11 +335,11 @@ void	Server::wasInvited(std::string cmd, Client &cli)
 	{
 		try
 		{
-			findClient(cli.getInvitedClient()).queueRespone(":"+cli.getUserName()+": declined the invitation\r\n");
+			findClient(cli.getInvitedClient()).queueResponse(":"+cli.getUserName()+": declined the invitation\r\n");
 		}
 		catch (std::exception &)
 		{
-			cli.queueRespone(":server 401 " + cli.getNickName() + " " + cli.getInvitedClient() + " :No such nick\r\n");
+			cli.queueResponse(":server 401 " + cli.getNickName() + " " + cli.getInvitedClient() + " :No such nick\r\n");
 		}
 	}
 }
@@ -353,7 +358,7 @@ void	Server::Invite(std::string cmd, Client &cli)
 	}
 	catch (std::exception &)
 	{
-		cli.queueRespone(":server 401 " + cli.getNickName() + " " + param + " :No such nick\r\n");
+		cli.queueResponse(":server 401 " + cli.getNickName() + " " + param + " :No such nick\r\n");
 		return;
 	}
 	iss >> param;
@@ -361,18 +366,18 @@ void	Server::Invite(std::string cmd, Client &cli)
 	{
 		if (findChannel(param) == -1)
 		{
-			cli.queueRespone(":server 403: channel does not exist\r\n");
+			cli.queueResponse(":server 403: channel does not exist\r\n");
 			return ;
 		}
 		invitingPtr->setInvitedIndex(findChannel(param));
 		invitingPtr->setInvitedClient(cli.getUserName());
-		invitingPtr->queueRespone(":" + cli.getUserName() + " invited you to join the channel: " + _channels[findChannel(param)].getName() + "\r\n");
+		invitingPtr->queueResponse(":" + cli.getUserName() + " invited you to join the channel: " + _channels[findChannel(param)].getName() + "\r\n");
 	}
 	else
 	{
 		invitingPtr->setInvitedIndex(cli.getChannelIndex());
 		invitingPtr->setInvitedClient(cli.getUserName());
-		invitingPtr->queueRespone(":" + cli.getUserName() + " invited you to join the channel: " + _channels[cli.getChannelIndex()].getName() + "\r\n");
+		invitingPtr->queueResponse(":" + cli.getUserName() + " invited you to join the channel: " + _channels[cli.getChannelIndex()].getName() + "\r\n");
 	}
 }
 
@@ -383,17 +388,17 @@ void	Server::Join(std::string cmd, Client &cli)
 
 	if (channelIndex == -1)
 	{
-		cli.queueRespone(":server 403 " + cli.getNickName() + " " + channel + " :No such channel\r\n");
+		cli.queueResponse(":server 403 " + cli.getNickName() + " " + channel + " :No such channel\r\n");
 		return ;
 	}
 	if (_channels[channelIndex].getInvite())
 	{
-		cli.queueRespone(":server 473 " + cli.getNickName() + " " + channel + " :Cannot join channel (+i)\r\n");
+		cli.queueResponse(":server 473 " + cli.getNickName() + " " + channel + " :Cannot join channel (+i)\r\n");
 		return ;
 	}
 	if (_channels[channelIndex].getLimit() != -1 && _channels[channelIndex].getUsers() >= _channels[channelIndex].getLimit())
 	{
-		cli.queueRespone(":Server 471 " + cli.getNickName() + " " + channel + " :Cannot join channel (+l)\r\n");
+		cli.queueResponse(":Server 471 " + cli.getNickName() + " " + channel + " :Cannot join channel (+l)\r\n");
 		return ;
 	}
 	// Add membership and set current index
@@ -413,9 +418,9 @@ void    Server::Nick(std::string cmd, Client &cli)
         std::cout << "[nick dup -> adjusted] fd=" << cli.getFd() << " tried '" << nick << "' -> assigned '" << newNick << "'\n";
         cli.setNickName(newNick);
         if (!cli.getUserName().empty())
-            cli.queueRespone(":server NOTICE " + cli.getNickName() + " :Your nickname was changed to " + newNick + " because the requested nick was already in use\r\n");
+            cli.queueResponse(":server NOTICE " + cli.getNickName() + " :Your nickname was changed to " + newNick + " because the requested nick was already in use\r\n");
         else
-            cli.queueRespone(":server NOTICE * :Your nickname was changed to " + newNick + " because the requested nick was already in use\r\n");
+            cli.queueResponse(":server NOTICE * :Your nickname was changed to " + newNick + " because the requested nick was already in use\r\n");
         return;
     }
     std::cout << "[nick set] fd=" << cli.getFd() << " -> nick='" << nick << "'\n";
@@ -439,15 +444,15 @@ void	Server::oper(std::string cmd, Client &cli)
 	}
 	catch (std::exception &)
 	{
-		cli.queueRespone(":server 401 " + cli.getNickName() + " " + name + " :No such nick\r\n");
+		cli.queueResponse(":server 401 " + cli.getNickName() + " " + name + " :No such nick\r\n");
 		return;
 	}
 	if (password == "operpass")
 		clintPtr->setOp(!clintPtr->getOp());
 	else
-		clintPtr->queueRespone(":server 464 "+clintPtr->getNickName()+" :Password incorrect\r\n");
+		clintPtr->queueResponse(":server 464 "+clintPtr->getNickName()+" :Password incorrect\r\n");
 	if (clintPtr->getOp() == true)
-		clintPtr->queueRespone(":server 381 " + clintPtr->getNickName() + " :You are now an IRC operator\r\n");
+		clintPtr->queueResponse(":server 381 " + clintPtr->getNickName() + " :You are now an IRC operator\r\n");
 }
 
 void	Server::User(std::string cmd, Client &cli)
@@ -466,9 +471,9 @@ void	Server::User(std::string cmd, Client &cli)
 		std::cout << "[user dup -> adjusted] fd=" << cli.getFd() << " tried '" << user << "' -> assigned '" << newUser << "'\n";
 		cli.setUserName(newUser);
 		if (!cli.getNickName().empty())
-			cli.queueRespone(":server NOTICE " + cli.getNickName() + " :Your username was changed to " + newUser + " because the requested name was already in use\r\n");
+			cli.queueResponse(":server NOTICE " + cli.getNickName() + " :Your username was changed to " + newUser + " because the requested name was already in use\r\n");
 		else
-			cli.queueRespone(":server NOTICE * :Your username was changed to " + newUser + " because the requested name was already in use\r\n");
+			cli.queueResponse(":server NOTICE * :Your username was changed to " + newUser + " because the requested name was already in use\r\n");
 		return;
 	}
 	std::cout << "[user set] fd=" << cli.getFd() << " -> user='" << user << "'\n";
@@ -494,7 +499,7 @@ void	Server::Message(std::string cmd, Client &cli)
 		// Prevent non-members from speaking in the channel using membership set
 		if (!_channels[chidx].hasMember(cli.getFd()))
 		{
-			cli.queueRespone("442 " + cli.getNickName() + " " + target + " :You're not on that channel\r\n");
+			cli.queueResponse("442 " + cli.getNickName() + " " + target + " :You're not on that channel\r\n");
 			return;
 		}
 		std::string out = prefix + " PRIVMSG " + target + " :" + message + "\r\n";
@@ -504,7 +509,7 @@ void	Server::Message(std::string cmd, Client &cli)
 			if (*it == cli.getFd()) continue;
 			std::map<int, Client>::iterator cit = _clients.find(*it);
 			if (cit != _clients.end())
-				cit->second.queueRespone(out);
+				cit->second.queueResponse(out);
 		}
 	}
 	else
@@ -514,7 +519,7 @@ void	Server::Message(std::string cmd, Client &cli)
 			if (it->second.getNickName() == target || it->second.getUserName() == target)
 			{
 				std::string out = prefix + " PRIVMSG " + target + " :" + message + "\r\n";
-				it->second.queueRespone(out);
+				it->second.queueResponse(out);
 				break;
 			}
 		}
@@ -531,7 +536,7 @@ void	Server::Whois(std::string cmd, Client &cli)
 	iss >> target;
 	if (target.empty())
 	{
-		cli.queueRespone(":server 431 " + cli.getNickName() + " :No nickname given\r\n");
+		cli.queueResponse(":server 431 " + cli.getNickName() + " :No nickname given\r\n");
 		return;
 	}
 	Client *targetCli = NULL;
@@ -542,7 +547,7 @@ void	Server::Whois(std::string cmd, Client &cli)
 	}
 	catch (std::exception &e)
 	{
-		cli.queueRespone(":server 401 " + cli.getNickName() + " " + target + " :No such nick\r\n");
+		cli.queueResponse(":server 401 " + cli.getNickName() + " " + target + " :No such nick\r\n");
 		return;
 	}
 		// RPL_WHOISUSER 311
@@ -550,7 +555,7 @@ void	Server::Whois(std::string cmd, Client &cli)
 		std::string tu = targetCli->getUserName();
 		std::string tr = targetCli->getRealName();
 		std::string host = "example.com";
-		cli.queueRespone(":server 311 " + cli.getNickName() + " " + tn + " " + tu + " " + host + " * :" + tr + "\r\n");
+		cli.queueResponse(":server 311 " + cli.getNickName() + " " + tn + " " + tu + " " + host + " * :" + tr + "\r\n");
 
 		// RPL_WHOISCHANNELS 319 - list channels the user is in
 		std::string chlist;
@@ -563,14 +568,14 @@ void	Server::Whois(std::string cmd, Client &cli)
 				chlist += it->second.getName();
 			}
 		}
-		cli.queueRespone(":server 319 " + cli.getNickName() + " " + tn + " :" + chlist + "\r\n");
+		cli.queueResponse(":server 319 " + cli.getNickName() + " " + tn + " :" + chlist + "\r\n");
 
 		// RPL_WHOISOP 313 if operator
 		if (targetCli->getOp())
-			cli.queueRespone(":server 313 " + cli.getNickName() + " " + tn + " :is an IRC operator\r\n");
+			cli.queueResponse(":server 313 " + cli.getNickName() + " " + tn + " :is an IRC operator\r\n");
 
 		// RPL_ENDOFWHOIS 318
-		cli.queueRespone(":server 318 " + cli.getNickName() + " " + tn + " :End of /WHOIS list\r\n");
+		cli.queueResponse(":server 318 " + cli.getNickName() + " " + tn + " :End of /WHOIS list\r\n");
 }
 
 void	Server::sendToChannel(std::string msg, int channelIndex)
@@ -586,7 +591,7 @@ void	Server::sendToChannel(std::string msg, int channelIndex)
 	{
 		std::map<int, Client>::iterator cit = _clients.find(*it);
 		if (cit != _clients.end())
-			cit->second.queueRespone(out);
+			cit->second.queueResponse(out);
 	}
 }
 
@@ -627,7 +632,7 @@ void	Server::Commands(std::string cmd, Client &cli)
 	// if (cli.getInvited() == true)
 	// 	wasInvited(cmd, cli);
 	if (cmd.find("PING server") == 0)
-		cli.queueRespone("PONG :server\r\n");
+		cli.queueResponse("PONG :server\r\n");
 	else
 		switch(c)
 		{
@@ -652,7 +657,7 @@ void	Server::WelcomeCommands(std::string cmd, Client &cli)
 		if (cmd.substr(5) == _password)
 			cli.setAuth(true);
 		else
-			cli.queueRespone(":server 464 :Password incorrect\r\n");
+			cli.queueResponse(":server 464 :Password incorrect\r\n");
 	}
 	else if (cli.getUserName().empty())
 		if (cmd.find("USER ") == 0)
@@ -660,7 +665,7 @@ void	Server::WelcomeCommands(std::string cmd, Client &cli)
 	if ((!_password.empty() ? cli.getAuth() : true) && !cli.getUserName().empty() && !cli.getNickName().empty())
 	{
 		std::cout << "[welcome] fd=" << cli.getFd() << " nick='" << cli.getNickName() << "' user='" << cli.getUserName() << "'\n";
-		cli.queueRespone(":server 001 " + cli.getNickName() + " :Welcome to the IRC server\r\n");
+		cli.queueResponse(":server 001 " + cli.getNickName() + " :Welcome to the IRC server\r\n");
 	}
 }
 
@@ -722,7 +727,7 @@ void Server::run()
 						if (cmd.empty())
 							continue;
 						if (cmd.find("CAP LS") == 0) //client will send request for a list of available capabilities
-							cli.queueRespone(":server CAP * LS :\r\n"); //send empty capability list since we dont have any
+							cli.queueResponse(":server CAP * LS :\r\n"); //send empty capability list since we dont have any
 						if (cmd.find("NICK ") == 0)
 						{
 							Nick(cmd, cli);
@@ -731,17 +736,18 @@ void Server::run()
 						
 						if (cmd.find("CAP END") == 0 && !cli.getNickName().empty() && !cli.getUserName().empty() && cli.getAuth())
 						{
-							cli.queueRespone(":server 001 " + cli.getNickName() + " :Welcome to the IRC server\r\n");
-							cli.queueRespone(":server 002 " + cli.getNickName() + " :Your host is servername, running version 1.0\r\n");
-							cli.queueRespone(":server 003 " + cli.getNickName() + " :This server was created today\r\n");
-							cli.queueRespone(":server 004 " + cli.getUserName() + " servername 1.0 * *\r\n");
+							std::string host = "127.0.0.1"; // Dynamic on demand, used to show use in 001 response
+							cli.queueResponse(":" + host + " 001 " + cli.getNickName() + " :Welcome to the IRC server " + cli.getNickName() + "!" + cli.getUserName() + "@" + host + "\r\n");
+							cli.queueResponse(":server 002 " + cli.getNickName() + " :Your host is servername, running version 1.0\r\n");
+							cli.queueResponse(":server 003 " + cli.getNickName() + " :This server was created today\r\n");
+							cli.queueResponse(":server 004 " + cli.getUserName() + " servername 1.0 * *\r\n");
 						}
 						if (!cli.getAuth() || cli.getUserName().empty())
 							WelcomeCommands(cmd, cli);
 						else if (cli.getAuth() && !cli.getUserName().empty())
 							Commands(cmd, cli);
 						else if (cli.getAuth() == false && cli.getUserName().empty())
-							cli.queueRespone(":server 464: Authenticate first\r\n");
+							cli.queueResponse(":server 464: Authenticate first\r\n");
 					}
 				}
 			}
