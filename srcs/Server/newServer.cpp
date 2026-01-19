@@ -371,13 +371,21 @@ void	Server::Invite(std::string cmd, Client &cli)
 		}
 		invitingPtr->setInvitedIndex(findChannel(param));
 		invitingPtr->setInvitedClient(cli.getUserName());
-		invitingPtr->queueResponse(":" + cli.getUserName() + " invited you to join the channel: " + _channels[findChannel(param)].getName() + "\r\n");
+		std::string chan = _channels[findChannel(param)].getName();
+		std::string resp;
+		invitingPtr->queueResponse(":" + cli.getUserName() + " 341 " + chan.substr(2) + " " + invitingPtr->getNickName() + "\r\n");
+		resp = ":" + cli.getUserName() + " 341 " + chan.substr(1) + " " + invitingPtr->getNickName() + "\r\n";
+		std::cout << resp;
 	}
 	else
 	{
 		invitingPtr->setInvitedIndex(cli.getChannelIndex());
 		invitingPtr->setInvitedClient(cli.getUserName());
-		invitingPtr->queueResponse(":" + cli.getUserName() + " invited you to join the channel: " + _channels[cli.getChannelIndex()].getName() + "\r\n");
+		std::string chan;
+		std::string resp;
+		invitingPtr->queueResponse(":" + cli.getUserName() + " 341 " + chan.substr(2) + " " + invitingPtr->getNickName() + "\r\n");
+		resp = ":" + cli.getUserName() + " 341 " + chan.substr(1) + " " + invitingPtr->getNickName() + "\r\n";
+		std::cout << resp;
 	}
 }
 
