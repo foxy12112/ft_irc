@@ -16,8 +16,11 @@ Client::Client(const Client &other)
 	_realName = other._realName;
 	_isAuthenticated = other._isAuthenticated;
 	_isConnected = other._isConnected;
-	_isOp = other._isOp;
+	_isServerOp = other._isServerOp;
 	_channelIndex = other._channelIndex;
+	_invitedIndex = other._invitedIndex;
+	_invitedClient = other._invitedClient;
+	_wasInvited = other._wasInvited;
 }
 
 Client &Client::operator=(const Client &other)
@@ -33,8 +36,11 @@ Client &Client::operator=(const Client &other)
 		_realName = other._realName;
 		_isAuthenticated = other._isAuthenticated;
 		_isConnected = other._isConnected;
-		_isOp = other._isOp;
+		_isServerOp = other._isServerOp;
 		_channelIndex = other._channelIndex;
+		_invitedIndex = other._invitedIndex;
+		_invitedClient = other._invitedClient;
+		_wasInvited = other._wasInvited;
 	}
 	return (*this);
 }

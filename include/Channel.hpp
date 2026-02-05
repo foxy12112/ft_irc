@@ -6,7 +6,7 @@
 /*   By: bszikora <bszikora@student.42helbronn.d    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/09 02:51:03 by bszikora          #+#    #+#             */
-/*   Updated: 2026/01/07 19:08:38 by bszikora         ###   ########.fr       */
+/*   Updated: 2026/01/21 00:10:45 by bszikora         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -35,9 +35,14 @@ public:
 
 	// Membership management
 	bool		hasMember(int fd) const { return _memberFds.find(fd) != _memberFds.end(); }
-	void		addMember(int fd) { _memberFds.insert(fd); }
-	void		removeMember(int fd) { _memberFds.erase(fd); }
+	void		addMember(int fd) { _memberFds.insert(fd); _users = _memberFds.size(); }
+	void		removeMember(int fd) { _memberFds.erase(fd); _users = _memberFds.size(); _operators.erase(fd); }
 	const std::set<int>& members() const { return _memberFds; }
+
+	// Operator management (per-channel)
+	bool		isOperator(int fd) const { return _operators.find(fd) != _operators.end(); }
+	void		setOperator(int fd, bool op) { if (op) _operators.insert(fd); else _operators.erase(fd); }
+	const std::set<int>& operators() const { return _operators; }
 
 	void		setUsers(int users){this->_users = users;}
 	void		setTopic(std::string topic){this->_topic = topic;}
@@ -69,6 +74,7 @@ private:
 	int			_users;
 	int			_modes;
 	std::set<int> _memberFds;
+	std::set<int> _operators;
 };
 
 #endif

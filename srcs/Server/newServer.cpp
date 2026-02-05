@@ -73,171 +73,176 @@ bool Server::isNameInUse(const std::string &name, bool checkNick, int requesterF
 
 void	Server::Mode(std::string cmd, Client &cli)
 {
+	std::istringstream iss(cmd.substr(5));
+	std::string channelName;
+	std::string modeString;
+	iss >> channelName >> modeString;
 
-	// Determine channel to operate on
 	int channelIndex = cli.getChannelIndex();
-	std::string param;
-	if (cmd.size() > 5)
-		param = cmd.substr(5);
-	else
-		param = "";
-
-	// If a channel name is provided as first token, use it
-	std::istringstream iss(param);
-	std::string first;
-	iss >> first;
-	if (!first.empty() && first[0] == '#')
+	if (!channelName.empty() && channelName[0] == '#')
 	{
-		int idx = findChannel(first);
+		int idx = findChannel(channelName);
 		if (idx != -1)
 			channelIndex = idx;
-		// remove the channel token from param so next token is the mode
-		std::string rest;
-		std::getline(iss, rest);
-		// rest may start with a space, trim one leading space
-		if (!rest.empty() && rest[0] == ' ')
-			rest = rest.substr(1);
-		param = rest;
 	}
-
-	if (channelIndex < 0 || channelIndex >= (int)_channels.size())
+	std::map<int, Channel>::iterator chIt = _channels.find(channelIndex);
+	if (chIt == _channels.end())
 	{
-		cli.queueResponse(":server 403 " + cli.getNickName() + " : No such channel\r\n");
+		cli.queueResponse(":server 403 " + cli.getNickName() + " :No such channel\r\n");
+		return;
+	}
+	Channel &channel = chIt->second;
+
+	if (modeString.empty())
+	{
+		cli.queueResponse(":server 461 MODE :Not enough parameters\r\n");
 		return;
 	}
 
-	Channel &channel = _channels[channelIndex];
+	if (!channel.hasMember(cli.getFd()))
+	{
+		cli.queueResponse(":server 442 " + cli.getNickName() + " " + channel.getName() + " :You're not on that channel\r\n");
+		return;
+	}
+	if (!channel.isOperator(cli.getFd()))
+	{
+		cli.queueResponse(":server 482 " + channel.getName() + " :You must be a channel operator\r\n");
+		std::cout << "cant do\n";
+		return;
+	}
+	std::string modes;
+	std::string params;
+	bool adding = false;
 
-	// Extract mode flag (first token in param)
-	std::string mode;
-	std::istringstream iss2(param);
-	iss2 >> mode;
-	if (mode.empty())
+	for (size_t i = 0; i < modeString.size(); i++)
 	{
-		cli.queueResponse(":server 461 MODE : Not enough parameters\r\n");
-		return;
-	}
-
-	if (mode == "-i")
-	{
-		channel.setInvite(!channel.getInvite());
-		cli.queueResponse(std::string("Channel: ") + channel.getName() + " has been set to " + (channel.getInvite() ? "invite only\r\n" : "no invite needed\r\n"));
-		return;
-	}
-	else if (mode == "-t")
-	{
-		channel.setTopicOp(!channel.getTopicOp());
-		cli.queueResponse(std::string("Channel: ") + channel.getName() + " Topic can be edited by " + (channel.getTopicOp() ? "operators only\r\n" : "anyone\r\n"));
-		return;
-	}
-	else if (mode == "-k")
-	{
-		// next token is optional password
-		std::string pass;
-		iss2 >> pass;
-		if (!pass.empty())
+		char c = modeString[i];
+		if (c == '+')
+			adding = true;
+		else if (c == '-')
+			adding = false;
+		else if (c == 'i')
 		{
-			channel.setPass(pass);
-			cli.queueResponse("Channel: password has been set\r\n");
+			channel.setInvite(adding);
+			modes += (adding ? '+' : '-');
+			modes += 'i';
 		}
-		else
+		else if (c == 't')
 		{
-			// remove password
-			channel.setPass(std::string());
-			cli.queueResponse("Channel: password has been removed\r\n");
+			bool enableTopicRestriction = adding ? true : !channel.getTopicOp();
+			channel.setTopicOp(enableTopicRestriction);
+			modes += (enableTopicRestriction ? '+' : '-');
+			modes += 't';
 		}
-		return;
-	}
-	else if (mode == "-o")
-	{
-		std::string user;
-		iss2 >> user;
-		if (user.empty())
+		else if (c == 'k')
 		{
-			cli.queueResponse(":server 461 MODE -o : Not enough parameters\r\n");
-			return;
-		}
-		for (std::map<int, Client>::iterator it = _clients.begin(); it != _clients.end(); ++it)
-		{
-			if (it->second.getUserName() == user)
+			if (adding)
 			{
-				bool newOp = !it->second.getOp();
-				it->second.setOp(newOp);
-				it->second.queueResponse(std::string("Client: ") + it->second.getUserName() + (newOp ? " is now an operator\r\n" : " is not an operator anymore\r\n"));
-				cli.queueResponse(std::string("Client: ") + it->second.getUserName() + (newOp ? " is now an operator\r\n" : " is not an operator anymore\r\n"));
-				break;
+				std::string pass;
+				iss >> pass;
+				if (!pass.empty())
+				{
+					channel.setPass(pass);
+					modes += '+';
+					modes += 'k';
+					params += " " + pass;
+				}
+			}
+			else
+			{
+				channel.setPass("");
+				modes += '-';
+				modes += 'k';
 			}
 		}
-		return;
+		else if (c == 'l')
+		{
+			if (adding)
+			{
+				std::string limitStr;
+				iss >> limitStr;
+				int limit = std::atoi(limitStr.c_str());
+				if (limit > 0)
+				{
+					channel.setLimit(limit);
+					modes += '+';
+					modes += 'l';
+					params += " " + limitStr;
+				}
+			}
+			else
+			{
+				channel.setLimit(-1);
+				modes += '-';
+				modes += 'l';
+			}
+		}
+		else if (c == 'o')
+		{
+			std::string user;
+			iss >> user;
+			if (!user.empty())
+			{
+				for (std::map<int, Client>::iterator it = _clients.begin(); it != _clients.end(); ++it)
+				{
+					if (it->second.getUserName() == user || it->second.getNickName() == user)
+					{
+						channel.setOperator(it->first, adding);
+						modes += (adding ? '+' : '-');
+						modes += 'o';
+						params += " " + it->second.getNickName();
+						break;
+					}
+				}
+			}
+		}
 	}
-	else if (mode == "-l")
+
+	if (!modes.empty())
 	{
-		std::string limit;
-		iss2 >> limit;
-		if (limit.empty())
-		{
-			channel.setLimit(-1);
-			cli.queueResponse("Channel: Limit has been removed\r\n");
-		}
-		else
-		{
-			channel.setLimit(std::atoi(limit.c_str()));
-			cli.queueResponse(std::string("Channel: Limit has been set to ") + limit + "\r\n");
-		}
-		return;
+		std::string modeMsg = ":" + cli.getNickName() + "!~" + cli.getUserName() + "@127.0.0.1 MODE " + channel.getName() + " " + modes + params + "\r\n";
+		sendToChannel(modeMsg, channelIndex);
 	}
 	else
-	{
-		cli.queueResponse(":server 472 MODE : Unknown mode\r\n");
-		return;
-	}
+		cli.queueResponse(":server 472 MODE :Unknown mode\r\n");
 }
 
 void	Server::Topic(std::string cmd, Client &cli)
 {
 	std::string param;
+	int channelIndex = cli.getChannelIndex();
 	
 	if (cmd.size() == 5)
-		cli.queueResponse(_channels[cli.getChannelIndex()].getTopic());
-	else if (cli.getOp() == true || _channels[cli.getChannelIndex()].getTopicOp() == false) //check that topic can be changed by everyone or not, operators can always change topic
 	{
-		std::istringstream iss(cmd.substr(6));
-		iss >> param;
-		if (param == "-delete")//check if target should delete topic
-		{
-			iss >> param;
-			if (param.empty()) //deletes current channels topic if no channel specified
-			{
-				_channels[cli.getChannelIndex()].setTopic(NULL); 
-				return;
-			}
-			if (param[0] == '#')
-				_channels[findChannel(param)].setTopic(NULL);
-			else
-				_channels[cli.getChannelIndex()].setTopic(NULL);
-		}
-		else if (param[0] == '#')//either gets the topic of a specific channel or changes it
-		{
-			int channel = findChannel(param);
-			iss >> param;
-			if (param.empty())
-				cli.queueResponse(_channels[channel].getTopic());
-			else
-				_channels[channel].setTopic(cmd.substr(6 + _channels[channel].getName().size()));
-		}
-		else//gets current channeels topic
-			_channels[cli.getChannelIndex()].setTopic(cmd.substr(7));
+		cli.queueResponse(_channels[channelIndex].getTopic());
+		return;
+	}
+
+	bool isChannelOp = _channels[channelIndex].isOperator(cli.getFd());
+	bool canModifyTopic = isChannelOp || !_channels[channelIndex].getTopicOp();
+	
+	if (!canModifyTopic)
+	{
+		cli.queueResponse(":server 482 " + _channels[channelIndex].getName() + " :You must be a channel operator\r\n");
+		return;
+	}
+
+	std::string topicText = cmd.substr(6);
+	
+	if (topicText == "-delete")
+	{
+		_channels[channelIndex].setTopic("");
+		sendToChannel(":" + cli.getNickName() + "!~" + cli.getUserName() + "@127.0.0.1 TOPIC " + _channels[channelIndex].getName() + " :\r\n", channelIndex);
+	}
+	else
+	{
+		_channels[channelIndex].setTopic(topicText);
+		sendToChannel(":" + cli.getNickName() + "!~" + cli.getUserName() + "@127.0.0.1 TOPIC " + _channels[channelIndex].getName() + " :" + topicText + "\r\n", channelIndex);
 	}
 }
 
 void Server::Kick(std::string cmd, Client &cli)
 {
-	if (cli.getOp() == false)
-	{
-		cli.queueResponse("481 " + cli.getNickName() + " :Permission Denied- You're not an IRC operator\r\n");
-		return;
-	}
-
 	std::string param = cmd.substr(5); // Remove "KICK "
 	std::istringstream iss(param);
 	std::string channel;
@@ -255,7 +260,7 @@ void Server::Kick(std::string cmd, Client &cli)
 	// Validate channel format
 	if (channel.empty() || channel[0] != '#')
 	{
-		cli.queueResponse("403 " + cli.getNickName() + " " + channel + " :No such channel\r\n");
+		cli.queueResponse("403 " + channel + " :No such channel\r\n");
 		return;
 	}
 
@@ -269,6 +274,11 @@ void Server::Kick(std::string cmd, Client &cli)
 	if (!_channels[channelIndex].hasMember(cli.getFd()))
 	{
 		cli.queueResponse("442 " + cli.getNickName() + " " + channel + " :You're not on that channel\r\n");
+		return;
+	}
+	if (!_channels[channelIndex].isOperator(cli.getFd()))
+	{
+		cli.queueResponse(":server 482 " + channel + " :You must be a channel operator\r\n");
 		return;
 	}
 
@@ -305,15 +315,9 @@ void Server::Kick(std::string cmd, Client &cli)
 			_channels[channelIndex].removeMember(kickedClient.getFd());
 			// Then, broadcast KICK to channel members (target excluded now)
 			sendToChannel(kickMsg, channelIndex);
-			// Move to purgatory channel and notify
-			kickedClient.setChannelIndex(5);
-			_channels[5].addMember(kickedClient.getFd());
-			// Deliver explicit KICK and NOTICE to the kicked user
-			kickedClient.queueResponse(kickMsg);
-			kickedClient.queueResponse(":server NOTICE " + kickedClient.getNickName() + " :You were kicked from " + channel + " (" + reason + ")\r\n");
-			// Inform them of joining purgatory
-			kickedClient.queueResponse(":" + target + "!" + kickedClient.getUserName() + "@127.0.0.1 JOIN :" + "purgatory" + "\r\n");
-			// Remove client from channel here
+		// Deliver explicit KICK and NOTICE to the kicked user
+		kickedClient.queueResponse(kickMsg);
+		kickedClient.queueResponse(":server NOTICE " + kickedClient.getNickName() + " :You were kicked from " + channel + " (" + reason + ")\r\n");
 		}
 		catch (...)
 		{
@@ -345,53 +349,63 @@ void	Server::wasInvited(std::string cmd, Client &cli)
 }
 
 
-void	Server::Invite(std::string cmd, Client &cli)
+void Server::Invite(std::string cmd, Client &cli)
 {
-	std::string param;
 	std::istringstream iss(cmd.substr(7));
-	iss >> param;
-	Client *invitingPtr = NULL;
-	try
+	std::string targetNick;
+	std::string channelName;
+	iss >> targetNick >> channelName;
+
+	if (targetNick.empty())
 	{
-		Client &inviting = findClient(param);
-		invitingPtr = &inviting;
-	}
-	catch (std::exception &)
-	{
-		cli.queueResponse(":server 401 " + cli.getNickName() + " " + param + " :No such nick\r\n");
+		cli.queueResponse(":server 461 INVITE :Not enough parameters\r\n");
 		return;
 	}
-	iss >> param;
-	if (!param.empty())
+
+	Client *invitee = NULL;
+	try
 	{
-		if (findChannel(param) == -1)
-		{
-			cli.queueResponse(":server 403: channel does not exist\r\n");
-			return ;
-		}
-		invitingPtr->setInvitedIndex(findChannel(param));
-		invitingPtr->setInvitedClient(cli.getUserName());
-		std::string chan = _channels[findChannel(param)].getName();
-		std::string resp;
-		invitingPtr->queueResponse(":" + cli.getUserName() + " 341 " + chan.substr(2) + " " + invitingPtr->getNickName() + "\r\n");
-		resp = ":" + cli.getUserName() + " 341 " + chan.substr(1) + " " + invitingPtr->getNickName() + "\r\n";
-		std::cout << resp;
+		invitee = &findClient(targetNick);
 	}
-	else
+	catch (...)
 	{
-		invitingPtr->setInvitedIndex(cli.getChannelIndex());
-		invitingPtr->setInvitedClient(cli.getUserName());
-		std::string chan;
-		std::string resp;
-		invitingPtr->queueResponse(":" + cli.getUserName() + " 341 " + chan.substr(2) + " " + invitingPtr->getNickName() + "\r\n");
-		resp = ":" + cli.getUserName() + " 341 " + chan.substr(1) + " " + invitingPtr->getNickName() + "\r\n";
-		std::cout << resp;
+		cli.queueResponse(":server 401 " + cli.getNickName() + " " + targetNick + " :No such nick\r\n");
+		return;
 	}
+
+	if (channelName.empty() && _channels.count(cli.getChannelIndex()))
+		channelName = _channels[cli.getChannelIndex()].getName();
+
+	int chIdx = findChannel(channelName);
+	if (channelName.empty() || chIdx == -1) 
+	{
+		cli.queueResponse(":server 403 " + cli.getNickName() + " " + channelName + " :No such channel\r\n");
+		return;
+	}
+
+	if (!_channels[chIdx].isOperator(cli.getFd()))
+	{
+		cli.queueResponse(":server 482 " + channelName + " :You must be a channel operator\r\n");
+		return;
+	}
+
+	invitee->setInvitedIndex(chIdx);
+	invitee->setInvitedClient(cli.getUserName());
+	invitee->setWasInvited(true);
+
+	std::string host = "127.0.0.1";
+	cli.queueResponse(":server 341 " + cli.getNickName() + " " + invitee->getNickName() + " " + channelName + "\r\n");
+	std::string prefix = ":" + cli.getNickName() + "!~" + cli.getUserName() + "@" + host;
+	invitee->queueResponse(prefix + " INVITE " + invitee->getNickName() + " :" + channelName + "\r\n");
 }
 
 void	Server::Join(std::string cmd, Client &cli)
 {
-	std::string channel = cmd.substr(5);
+	std::istringstream iss(cmd.substr(5));
+	std::string channel;
+	std::string password;
+	iss >> channel >> password;
+
 	int channelIndex = findChannel(channel);
 
 	if (channelIndex == -1)
@@ -399,17 +413,33 @@ void	Server::Join(std::string cmd, Client &cli)
 		cli.queueResponse(":server 403 " + cli.getNickName() + " " + channel + " :No such channel\r\n");
 		return ;
 	}
+
 	if (_channels[channelIndex].getInvite())
 	{
-		cli.queueResponse(":server 473 " + cli.getNickName() + " " + channel + " :Cannot join channel (+i)\r\n");
-		return ;
+		if (!cli.getInvited() || cli.getInvitedIndex() != channelIndex)
+		{
+			cli.queueResponse(":server 473 " + cli.getNickName() + " " + channel + " :Cannot join channel (+i)\r\n");
+			return ;
+		}
+		cli.setWasInvited(false);
+		cli.setInvitedIndex(-1);
 	}
-	if (_channels[channelIndex].getLimit() != -1 && _channels[channelIndex].getUsers() >= _channels[channelIndex].getLimit())
+	
+	int currentUsers = _channels[channelIndex].members().size();
+	if (_channels[channelIndex].getLimit() != -1 && currentUsers >= _channels[channelIndex].getLimit())
 	{
 		cli.queueResponse(":Server 471 " + cli.getNickName() + " " + channel + " :Cannot join channel (+l)\r\n");
 		return ;
 	}
-	// Add membership and set current index
+	
+	if (!_channels[channelIndex].getPass().empty())
+	{
+		if (password != _channels[channelIndex].getPass())
+		{
+			cli.queueResponse(":server 475 " + cli.getNickName() + " " + channel + " :Cannot join channel (+k)\r\n");
+			return ;
+		}
+	}
 	_channels[channelIndex].addMember(cli.getFd());
 	cli.setChannelIndex(channelIndex);
 }
@@ -456,10 +486,15 @@ void	Server::oper(std::string cmd, Client &cli)
 		return;
 	}
 	if (password == "operpass")
-		clintPtr->setOp(!clintPtr->getOp());
+	{
+		bool newStatus = !clintPtr->getServerOp();
+		clintPtr->setServerOp(newStatus);
+		for (std::map<int, Channel>::iterator it = _channels.begin(); it != _channels.end(); ++it)
+			it->second.setOperator(clintPtr->getFd(), newStatus);
+	}
 	else
 		clintPtr->queueResponse(":server 464 "+clintPtr->getNickName()+" :Password incorrect\r\n");
-	if (clintPtr->getOp() == true)
+	if (clintPtr->getServerOp() == true)
 		clintPtr->queueResponse(":server 381 " + clintPtr->getNickName() + " :You are now an IRC operator\r\n");
 }
 
@@ -579,7 +614,7 @@ void	Server::Whois(std::string cmd, Client &cli)
 		cli.queueResponse(":server 319 " + cli.getNickName() + " " + tn + " :" + chlist + "\r\n");
 
 		// RPL_WHOISOP 313 if operator
-		if (targetCli->getOp())
+		if (targetCli->getServerOp())
 			cli.queueResponse(":server 313 " + cli.getNickName() + " " + tn + " :is an IRC operator\r\n");
 
 		// RPL_ENDOFWHOIS 318
@@ -639,7 +674,7 @@ void	Server::Commands(std::string cmd, Client &cli)
 	Command c = stringToCommand(cmd);
 	// if (cli.getInvited() == true)
 	// 	wasInvited(cmd, cli);
-	if (cmd.find("PING server") == 0)
+	if (cmd.find("PING") == 0)
 		cli.queueResponse("PONG :server\r\n");
 	else
 		switch(c)
@@ -684,7 +719,6 @@ void	Server::createChannel()
 	this->_channels[2] = Channel("#retrocomputing", "Everything about old PCs, terminals, and vintage OSes");
 	this->_channels[3] = Channel("#Operator channel", "Channel only for operators");
 	this->_channels[4] = Channel("#zenmode", "A calm space for meditation, mindfulness, and philosophy talk");
-	this->_channels[5] = Channel("purgatory", "this is just a purgatory for people who have been kicked from their channel");
 }
 
 void Server::run()
@@ -693,7 +727,6 @@ void Server::run()
 	fds[0].fd = _sock_fd;
 	fds[0].events = POLLIN;
 	createChannel();
-	_channels[5].setInvite(true);
 	while(true)
 	{
 		if (poll(&fds[0], fds.size(), -1) < 0)
