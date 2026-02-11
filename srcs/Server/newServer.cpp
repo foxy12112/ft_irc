@@ -172,7 +172,10 @@ void	Server::WelcomeCommands(std::string cmd, Client &cli)
 		if (cmd.substr(5) == _password)
 			cli.setAuth(true);
 		else
-			cli.queueResponse(":server 464 :Password incorrect\r\n");
+		{
+			cli.queueResponse(":server 464 " + cli.getNickName() + " :Password incorrect\r\n");
+			cli.setCon(false);
+		}
 	}
 	else if (cli.getUserName().empty())
 		if (cmd.find("USER ") == 0)
@@ -253,7 +256,7 @@ void Server::run()
 							cli.queueResponse(":" + host + " 001 " + cli.getNickName() + " :Welcome to the IRC server " + cli.getNickName() + "!" + cli.getUserName() + "@" + host + "\r\n");
 							cli.queueResponse(":server 002 " + cli.getNickName() + " :Your host is servername, running version 1.0\r\n");
 							cli.queueResponse(":server 003 " + cli.getNickName() + " :This server was created today\r\n");
-							cli.queueResponse(":server 004 " + cli.getUserName() + " servername 1.0 * *\r\n");
+							cli.queueResponse(":server 004 " + cli.getNickName() + " servername 1.0 * *\r\n");
 						}
 						if (!cli.getAuth() || cli.getUserName().empty())
 							WelcomeCommands(cmd, cli);

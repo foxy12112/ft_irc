@@ -7,11 +7,24 @@ void	Server::Join(std::string cmd, Client &cli)
 	std::string password;
 	iss >> channel >> password;
 
+	if (channel.empty())
+	{
+		cli.queueResponse(":server 461 JOIN :Not enough parameters\r\n");
+		return;
+	}
+
 	int channelIndex = findChannel(channel);
 
 	if (channelIndex == -1)
 	{
 		cli.queueResponse(":server 403 " + cli.getNickName() + " " + channel + " :No such channel\r\n");
+		return ;
+	}
+
+	// Already on channel, will never happen from irssi as it handles this case on the client program
+	if (_channels[channelIndex].hasMember(cli.getFd()))
+	{
+		cli.queueResponse(":server 443 " + cli.getNickName() + " " + cli.getNickName() + " " + channel + " :is already on channel\r\n");
 		return ;
 	}
 
@@ -29,7 +42,7 @@ void	Server::Join(std::string cmd, Client &cli)
 	int currentUsers = _channels[channelIndex].members().size();
 	if (_channels[channelIndex].getLimit() != -1 && currentUsers >= _channels[channelIndex].getLimit())
 	{
-		cli.queueResponse(":Server 471 " + cli.getNickName() + " " + channel + " :Cannot join channel (+l)\r\n");
+		cli.queueResponse(":server 471 " + cli.getNickName() + " " + channel + " :Cannot join channel (+l)\r\n");
 		return ;
 	}
 	

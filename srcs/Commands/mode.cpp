@@ -17,14 +17,14 @@ void	Server::Mode(std::string cmd, Client &cli)
 	std::map<int, Channel>::iterator chIt = _channels.find(channelIndex);
 	if (chIt == _channels.end())
 	{
-		cli.queueResponse(":server 403 " + cli.getNickName() + " :No such channel\r\n");
+		cli.queueResponse(":server 403 " + cli.getNickName() + " " + channelName + " :No such channel\r\n");
 		return;
 	}
 	Channel &channel = chIt->second;
 
 	if (modeString.empty())
 	{
-		cli.queueResponse(":server 461 MODE :Not enough parameters\r\n");
+		cli.queueResponse(":server 461 " + cli.getNickName() + " MODE :Not enough parameters\r\n");
 		return;
 	}
 
@@ -35,7 +35,7 @@ void	Server::Mode(std::string cmd, Client &cli)
 	}
 	if (!channel.isOperator(cli.getFd()))
 	{
-		cli.queueResponse(":server 482 " + channel.getName() + " :You must be a channel operator\r\n");
+		cli.queueResponse(":server 482 " + cli.getNickName() + " " + channel.getName() + " :You're not channel operator\r\n");
 		std::cout << "cant do\n";
 		return;
 	}
@@ -43,6 +43,7 @@ void	Server::Mode(std::string cmd, Client &cli)
 	std::string params;
 	bool adding = false;
 
+	char unknown = 0;
 	for (size_t i = 0; i < modeString.size(); i++)
 	{
 		char c = modeString[i];
@@ -125,6 +126,18 @@ void	Server::Mode(std::string cmd, Client &cli)
 				}
 			}
 		}
+		else
+		{
+			unknown = c;
+			break;
+		}
+	}
+
+	if (unknown)
+	{
+		std::string m(1, unknown);
+		cli.queueResponse(":server 472 " + cli.getNickName() + " " + m + " :is unknown mode char to me\r\n");
+		return;
 	}
 
 	if (!modes.empty())
@@ -132,6 +145,4 @@ void	Server::Mode(std::string cmd, Client &cli)
 		std::string modeMsg = ":" + cli.getNickName() + "!~" + cli.getUserName() + "@127.0.0.1 MODE " + channel.getName() + " " + modes + params + "\r\n";
 		sendToChannel(modeMsg, channelIndex);
 	}
-	else
-		cli.queueResponse(":server 472 MODE :Unknown mode\r\n");
 }

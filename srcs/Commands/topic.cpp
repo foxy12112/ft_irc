@@ -4,6 +4,12 @@ void	Server::Topic(std::string cmd, Client &cli)
 {
 	std::string param;
 	int channelIndex = cli.getChannelIndex();
+
+	if (_channels.find(channelIndex) == _channels.end() || !_channels[channelIndex].hasMember(cli.getFd()))
+	{
+		cli.queueResponse(":server 442 " + (_channels.find(channelIndex) != _channels.end() ? _channels[channelIndex].getName() : std::string("*")) + " :You're not on that channel\r\n");
+		return;
+	}
 	
 	if (cmd.size() == 5)
 	{
@@ -16,7 +22,7 @@ void	Server::Topic(std::string cmd, Client &cli)
 	
 	if (!canModifyTopic)
 	{
-		cli.queueResponse(":server 482 " + _channels[channelIndex].getName() + " :You must be a channel operator\r\n");
+		cli.queueResponse(":server 482 " + _channels[channelIndex].getName() + " :You're not channel operator\r\n");
 		return;
 	}
 

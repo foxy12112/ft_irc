@@ -6,6 +6,18 @@ void	Server::User(std::string cmd, Client &cli)
 	std::istringstream iss(param);
 	std::string user;
 	iss >> user;
+
+	if (!cli.getUserName().empty())
+	{
+		cli.queueResponse(":server 462 :You may not reregister\r\n");
+		return;
+	}
+
+	if (user.empty())
+	{
+		cli.queueResponse(":server 461 USER :Not enough parameters\r\n");
+		return;
+	}
 	if (isNameInUse(user, false, cli.getFd()))
 	{
 		std::string newUser = user;

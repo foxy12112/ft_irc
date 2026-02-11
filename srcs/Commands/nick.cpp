@@ -3,6 +3,11 @@
 void    Server::Nick(std::string cmd, Client &cli)
 {
     std::string nick = cmd.substr(5);
+    if (nick.empty())
+    {
+        cli.queueResponse(":server 431 :No nickname given\r\n");
+        return;
+    }
     if (isNameInUse(nick, true, cli.getFd()))
     {
         std::string newNick = nick;

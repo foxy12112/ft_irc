@@ -8,6 +8,11 @@ void	Server::oper(std::string cmd, Client &cli)
 	std::istringstream iss(param);
 	iss >> name;
 	iss >> password;
+	if (name.empty() || password.empty())
+	{
+		cli.queueResponse(":server 461 OPER :Not enough parameters\r\n");
+		return;
+	}
 	Client *clintPtr = NULL;
 	try
 	{
@@ -17,6 +22,12 @@ void	Server::oper(std::string cmd, Client &cli)
 	catch (std::exception &)
 	{
 		cli.queueResponse(":server 401 " + cli.getNickName() + " " + name + " :No such nick\r\n");
+		return;
+	}
+	// If the target client is already a server operator, just inform and exit
+	if (clintPtr->getServerOp() == true)
+	{
+		clintPtr->queueResponse(":server 381 " + clintPtr->getNickName() + " :You already have IRC operator permissions\r\n");
 		return;
 	}
 	if (password == "operpass")

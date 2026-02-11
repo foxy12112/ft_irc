@@ -16,10 +16,15 @@ void Server::Kick(std::string cmd, Client &cli)
 	if (reason_pos != std::string::npos)
 		reason = param.substr(reason_pos + 2); // Skip " :"
 
-	// Validate channel format
-	if (channel.empty() || channel[0] != '#')
+	if (channel.empty() || targets.empty())
 	{
-		cli.queueResponse("403 " + channel + " :No such channel\r\n");
+		cli.queueResponse(":server 461 KICK :Not enough parameters\r\n");
+		return;
+	}
+	// Validate channel format
+	if (channel[0] != '#')
+	{
+		cli.queueResponse(":server 403 " + cli.getNickName() + " " + channel + " :No such channel\r\n");
 		return;
 	}
 
@@ -37,7 +42,7 @@ void Server::Kick(std::string cmd, Client &cli)
 	}
 	if (!_channels[channelIndex].isOperator(cli.getFd()))
 	{
-		cli.queueResponse(":server 482 " + channel + " :You must be a channel operator\r\n");
+		cli.queueResponse(":server 482 " + channel + " :You're not channel operator\r\n");
 		return;
 	}
 
@@ -80,7 +85,7 @@ void Server::Kick(std::string cmd, Client &cli)
 		}
 		catch (...)
 		{
-			cli.queueResponse("401 " + cli.getNickName() + " " + target + " :No such nick\r\n");
+			cli.queueResponse(":server 401 " + cli.getNickName() + " " + target + " :No such nick\r\n");
 		}
 	}
 }

@@ -34,9 +34,21 @@ void Server::Invite(std::string cmd, Client &cli)
 		return;
 	}
 
+	if (!_channels[chIdx].hasMember(cli.getFd()))
+	{
+		cli.queueResponse(":server 442 " + channelName + " :You're not on that channel\r\n");
+		return;
+	}
+
 	if (!_channels[chIdx].isOperator(cli.getFd()))
 	{
-		cli.queueResponse(":server 482 " + channelName + " :You must be a channel operator\r\n");
+		cli.queueResponse(":server 482 " + channelName + " :You're not channel operator\r\n");
+		return;
+	}
+
+	if (_channels[chIdx].hasMember(invitee->getFd()))
+	{
+		cli.queueResponse(":server 443 " + cli.getNickName() + " " + invitee->getNickName() + " " + channelName + " :is already on channel\r\n");
 		return;
 	}
 
