@@ -42,10 +42,16 @@ ERROR_FILE	=	error.log
 _SERVER			=	newServer.cpp #Commands.cpp
 SERVER			=	$(addprefix Server/, $(_SERVER))
 
+_COMMAND		= 	invite.cpp join.cpp kick.cpp message.cpp mode.cpp nick.cpp oper.cpp topic.cpp user.cpp whois.cpp
+COMMAND			= 	$(addprefix Commands/, $(_COMMAND))
+
 _CLIENT			=	newClient.cpp
 CLIENT			=	$(addprefix Client/, $(_CLIENT))
 
-_SRCS			=	main.cpp $(CLIENT) $(SERVER)
+_CHANNEL		= 	Channel.cpp
+CHANNEL			= 	$(addprefix Channel/, $(_CHANNEL))
+
+_SRCS			= 	main.cpp $(CLIENT) $(SERVER) $(CHANNEL) $(COMMAND)
 SRCS			=	$(addprefix srcs/, $(_SRCS))
 
 OBJS			=	$(SRCS:srcs/%.cpp=bin/%.o)
@@ -60,6 +66,8 @@ bin:
 				@echo "\t\t\t$(BLUE) Making bin directory"
 				@mkdir -p bin/Server
 				@mkdir -p bin/Client
+				@mkdir -p bin/Channel
+				@mkdir -p bin/Commands
 
 bin/%.o:		srcs/%.cpp | bin
 				@echo "$(GREEN) Compiling $(Compiler) $(CLR_RMV) -c -o $(YELLOW) $@ $(CYAN) $^ $(GREEN) $(CFLAGS) $(GREEN) $(NC)"
