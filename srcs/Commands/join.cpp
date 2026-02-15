@@ -18,8 +18,10 @@ void	Server::Join(std::string cmd, Client &cli)
 
 	if (channelIndex == -1)
 	{
-		cli.queueResponse(":" + host + " 403 " + cli.getNickName() + " " + channel + " :No such channel\r\n");
-		return ;
+		// Create new channel
+		int newIndex = _channels.empty() ? 0 : _channels.rbegin()->first + 1;
+		_channels[newIndex] = Channel(channel, "");
+		channelIndex = newIndex;
 	}
 
 	// Already on channel, will never happen from irssi as it handles this case on the client program
@@ -57,4 +59,28 @@ void	Server::Join(std::string cmd, Client &cli)
 	}
 	_channels[channelIndex].addMember(cli.getFd());
 	cli.setChannelIndex(channelIndex);
+	// If first member, set as operator
+	if (_channels[channelIndex].members().size() == 1)
+		_channels[channelIndex].setOperator(cli.getFd(), true);
+	// Send JOIN to all members
+	sendToChannel(":" + cli.getNickName() + "!~" + cli.getUserName() + "@" + host + " JOIN " + channel + "\r\n", channelIndex);
+	// Send topic if set
+	if (!_channels[channelIndex].getTopic().empty())
+		cli.queueResponse(":" + host + " 332 " + cli.getNickName() + " " + channel + " :" + _channels[channelIndex].getTopic() + "\r\n");
+	// Send names list
+	std::string names;
+	const std::set<int> &members = _channels[channelIndex].members();
+	for (std::set<int>::const_iterator it = members.begin(); it != members.end(); ++it)
+	{
+		std::map<int, Client>::iterator cit = _clients.find(*it);
+		if (cit != _clients.end())
+		{
+			if (_channels[channelIndex].isOperator(*it))
+				names += "@";
+			names += cit->second.getNickName() + " ";
+		}
+	}
+	if (!names.empty()) names.erase(names.size() - 1); // remove trailing space
+	cli.queueResponse(":" + host + " 353 " + cli.getNickName() + " = " + channel + " :" + names + "\r\n");
+	cli.queueResponse(":" + host + " 366 " + cli.getNickName() + " " + channel + " :End of /NAMES list\r\n");
 }
