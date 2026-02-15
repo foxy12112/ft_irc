@@ -142,7 +142,7 @@ int		Server::findChannel(std::string channel)
 Client	&Server::findClient(std::string client)
 {
 	for (std::map<int, Client>::iterator it = _clients.begin(); it != _clients.end(); ++it)
-		if (client == it->second.getUserName() || client == it->second.getNickName())
+		if (client == it->second.getNickName())
 			return it->second;
 	throw std::runtime_error("Client not found");
 }
