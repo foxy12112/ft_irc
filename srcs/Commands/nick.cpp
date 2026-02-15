@@ -2,12 +2,18 @@
 
 void    Server::Nick(std::string cmd, Client &cli)
 {
-    std::string nick = cmd.substr(5);
-    if (nick.empty())
-    {
+    std::istringstream iss(cmd.substr(5));
+    std::string nick, extra;
+    iss >> nick >> extra;
+    if (nick.empty()) {
         cli.queueResponse(":server 431 :No nickname given\r\n");
         return;
     }
+    if (!extra.empty()) {
+        cli.queueResponse(":server 461 NICK :Too many parameters\r\n");
+        return;
+    }
+    // Nick command does not set real name or username
     if (isNameInUse(nick, true, cli.getFd()))
     {
         std::string newNick = nick;
