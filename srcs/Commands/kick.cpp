@@ -1,5 +1,6 @@
 #include "newServer.hpp"
 
+// Handles KICK command: removes user from channel
 void Server::Kick(std::string cmd, Client &cli)
 {
 	std::string host = _hostname;

@@ -1,5 +1,6 @@
 #include "newServer.hpp"
 
+// Handles USER command: sets username and real name
 void	Server::User(std::string cmd, Client &cli)
 {
 	std::string host = _hostname;

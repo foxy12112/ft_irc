@@ -1,5 +1,6 @@
 #include "newServer.hpp"
 
+// Handles OPER command: grants server operator privileges
 void	Server::oper(std::string cmd, Client &cli)
 {
 	std::string host = _hostname;

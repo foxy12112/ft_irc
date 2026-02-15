@@ -1,18 +1,18 @@
 
 #include "Channel.hpp"
 
+// Default constructor
 Channel::Channel()	: _name(), _topic(), _pass(), topicOpOnly(false), inviteOnly(false), _limit(-1), _users(0), _modes(0)
-{
-}
+{}
 
+// Constructor with name and topic
 Channel::Channel(std::string name, std::string topic)
 	: _name(name), _topic(topic), _pass(), topicOpOnly(false), inviteOnly(false), _limit(-1), _users(0), _modes(0)
-{
-}
+{}
 
+// Destructor
 Channel::~Channel()
-{
-}
+{}
 
 std::string Channel::getName()
 {

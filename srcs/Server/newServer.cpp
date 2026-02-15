@@ -1,7 +1,6 @@
-// Move include to top
 #include "newServer.hpp"
 
-// Helper to send full welcome numerics
+// Sends welcome numerics to authenticated clients
 void Server::sendWelcome(Client &cli) {
 	// Prevent duplicate welcomes
 	if (!cli.getAuth() || cli.getUserName().empty() || cli.getNickName().empty())
@@ -18,6 +17,7 @@ void Server::sendWelcome(Client &cli) {
 	cli.queueResponse(":" + host + " 004 " + cli.getNickName() + " " + host + " 1.0 * *\r\n");
 }
 
+// Creates and configures the server socket
 void Server::createSocket()
 {
 	_sock_fd = socket(AF_INET, SOCK_STREAM, 0); // Create a TCP socket
@@ -28,6 +28,7 @@ void Server::createSocket()
 	fcntl(_sock_fd, F_SETFL, O_NONBLOCK); // Set socket to non-blocking mode
 }
 
+// Binds socket to port and starts listening for connections
 void Server::bindAndListen()
 {
 	struct sockaddr_in addr; // Server address structure
@@ -43,6 +44,7 @@ void Server::bindAndListen()
 	std::cout << "Listening on port " << _port << std::endl;
 }
 
+// Initializes server with default channels and topics
 Server::Server(int port, const std::string &password)
 {
 	_sock_fd = -1;
@@ -58,6 +60,7 @@ Server::Server(int port, const std::string &password)
 	bindAndListen();
 }
 
+// Clean up resources on shutdown
 Server::~Server()
 {
 	if (_sock_fd != -1)
@@ -66,16 +69,16 @@ Server::~Server()
 		iter->second.disconnect();
 }
 
-
+// Checks if a nickname or username is already in use by another client
 bool Server::isNameInUse(const std::string &name, bool checkNick, int requesterFd)
 {
-	for (std::map<int, Client>::iterator it = _clients.begin(); it != _clients.end(); ++it)
+	for (std::map<int, Client>::iterator it = _clients.begin(); it != _clients.end(); ++it) // Iterate through clients
 	{
-		if (it->first == requesterFd)
+		if (it->first == requesterFd) // If checking own nickname/username, skip
 			continue;
 		if (checkNick)
 		{
-			if (name == it->second.getNickName())
+			if (name == it->second.getNickName()) // If nickname is in use, log and return true
 			{
 				std::cout << "[nick in use] fd=" << requesterFd << " tried '" << name << "' but fd=" << it->first << " already uses that nick\n";
 				return true;
@@ -83,7 +86,7 @@ bool Server::isNameInUse(const std::string &name, bool checkNick, int requesterF
 		}
 		else
 		{
-			if (name == it->second.getUserName())
+			if (name == it->second.getUserName()) // If username is in use, log and return true
 			{
 				std::cout << "[user in use] fd=" << requesterFd << " tried '" << name << "' but fd=" << it->first << " already uses that username\n";
 				return true;
@@ -93,33 +96,11 @@ bool Server::isNameInUse(const std::string &name, bool checkNick, int requesterF
 	return false;
 }
 
-void	Server::wasInvited(std::string cmd, Client &cli)
-{
-	std::string host = _hostname;
-	if (cmd == "y" || cmd == "accept" || cmd == "yes")
-	{
-		int newIdx = cli.getInvitedIndex();
-		if (newIdx >= 0 && _channels.find(newIdx) != _channels.end())
-			_channels[newIdx].addMember(cli.getFd());
-		cli.setChannelIndex(newIdx);
-	}
-	else
-	{
-		try
-		{
-			findClient(cli.getInvitedClient()).queueResponse(":"+cli.getUserName()+": declined the invitation\r\n");
-		}
-		catch (std::exception &)
-		{
-			cli.queueResponse(":" + host + " 401 " + cli.getNickName() + " " + cli.getInvitedClient() + " :No such nick\r\n");
-		}
-	}
-}
-
+// Sends a message to all members of a channel
 void	Server::sendToChannel(std::string msg, int channelIndex)
 {
 	std::string out = msg;
-	if (out.size() < 2 || out.substr(out.size() - 2) != "\r\n")
+	if (out.size() < 2 || out.substr(out.size() - 2) != "\r\n") // Ensure message ends with CRLF
 		out += "\r\n";
 	std::map<int, Channel>::iterator chIt = _channels.find(channelIndex);
 	if (chIt == _channels.end())
@@ -133,6 +114,7 @@ void	Server::sendToChannel(std::string msg, int channelIndex)
 	}
 }
 
+// Finds a channel by name and returns its index, or -1 if not found
 int		Server::findChannel(std::string channel)
 {
 	for (std::map<int, Channel>::iterator it = _channels.begin(); it != _channels.end(); ++it)
@@ -141,6 +123,7 @@ int		Server::findChannel(std::string channel)
 	return (-1);
 }
 
+// Finds a client by nickname and returns a reference, or throws if not found
 Client	&Server::findClient(std::string client)
 {
 	for (std::map<int, Client>::iterator it = _clients.begin(); it != _clients.end(); ++it)
@@ -149,27 +132,11 @@ Client	&Server::findClient(std::string client)
 	throw std::runtime_error("Client not found");
 }
 
-
-
-//CAP LS needs :your.server.name CAP * LS : as response from server
-
-
-//after nick and user have been correctly send, and cap ls,
-//send welcoming sequence,
-
-//example
-
-//:Server 001 user :Welcome to ft_irc user!hostname
-
-// /kick sends											KICK (optional)channel <usernames> (optional)reason:
-												//example:  KICK #General bob,sarah stop flodding!
-
+// Dispatches authenticated client commands
 void	Server::Commands(std::string cmd, Client &cli)
 {
 	std::string host = _hostname;
 	Command c = stringToCommand(cmd);
-	// if (cli.getInvited() == true)
-	// 	wasInvited(cmd, cli);
 	if (cmd.find("PING") == 0)
 		cli.queueResponse("PONG :" + host + "\r\n");
 	else
@@ -189,6 +156,7 @@ void	Server::Commands(std::string cmd, Client &cli)
 		}
 }
 
+// Handles pre-authentication commands (PASS, NICK, USER)
 void	Server::WelcomeCommands(std::string cmd, Client &cli)
 {
 	std::string host = _hostname;
@@ -213,6 +181,7 @@ void	Server::WelcomeCommands(std::string cmd, Client &cli)
 	       }
 }
 
+// Initializes server with default channels and topics
 void	Server::createChannel()
 {
 	this->_channels[0] = Channel("#General", "idk basic channel ig");
@@ -222,6 +191,7 @@ void	Server::createChannel()
 	this->_channels[4] = Channel("#zenmode", "A calm space for meditation, mindfulness, and philosophy talk");
 }
 
+// Main server loop: handles connections and client commands
 void Server::run()
 {
 	std::vector<struct pollfd> fds(1);
@@ -230,11 +200,11 @@ void Server::run()
 	createChannel();
 	while(true)
 	{
-		if (poll(&fds[0], fds.size(), -1) < 0)
-			throw std::runtime_error("Poll failed");
+		if (poll(&fds[0], fds.size(), -1) < 0) // Wait for events on the sockets
+			throw std::runtime_error("Poll failed"); // Handle poll errors when they occur
 		for (size_t i = 0; i < fds.size(); i++)
 		{
-			if (fds[i].revents & (POLLERR | POLLHUP | POLLNVAL))
+			if (fds[i].revents & (POLLERR | POLLHUP | POLLNVAL)) // Handle socket errors and disconnections
 			{
 				if (fds[i].fd != _sock_fd)
 				{
@@ -250,20 +220,20 @@ void Server::run()
 			}
 			if (fds[i].revents & POLLIN)
 			{
-				if (fds[i].fd == _sock_fd)
+				if (fds[i].fd == _sock_fd) // New client connection on the listening socket
 				{
-					struct sockaddr_in addr;
-					socklen_t len = sizeof(addr);
-					int client_fd = accept(_sock_fd, (struct sockaddr*)&addr, &len);
-					std::cout << "Client connected, fd=" << client_fd << std::endl;
+					struct sockaddr_in addr; // Client address structure for accept
+					socklen_t len = sizeof(addr); // Length of the address structure
+					int client_fd = accept(_sock_fd, (struct sockaddr*)&addr, &len); // Accept a new client connection
+					std::cout << "Client connected, fd=" << client_fd << std::endl; // Log the new connection
 					if (client_fd < 0)
 						continue ;
-					fcntl(client_fd, F_SETFL, O_NONBLOCK);
-					struct pollfd pfd = {client_fd, POLLIN, 0};
-					fds.push_back(pfd);
-					_clients[client_fd] = Client(client_fd, _hostname);
+					fcntl(client_fd, F_SETFL, O_NONBLOCK); // Set the new client socket to non-blocking mode
+					struct pollfd pfd = {client_fd, POLLIN, 0}; // Create a pollfd structure for the new client
+					fds.push_back(pfd); // Add the new client to the list of monitored sockets
+					_clients[client_fd] = Client(client_fd, _hostname); // Create a new Client object for the new connection
 				}
-				else
+				else // Data available to read from an existing client
 				{
 					Client &cli = _clients[fds[i].fd];
 					int bytes = cli.receive(_clients[fds[i].fd]);
@@ -279,7 +249,7 @@ void Server::run()
 					std::string cmd;
 					while(cli.extractNextCommand(cmd))
 					{
-						std::cout << cli.getChannelIndex() << "\t\t" << cmd << std::endl;
+						std::cout << cli.getChannelIndex() << "\t\t" << cmd << std::endl; // Log the received command for debugging
 						if (cmd.empty())
 							continue;
 						if (cmd.find("CAP LS") == 0) //client will send request for a list of available capabilities

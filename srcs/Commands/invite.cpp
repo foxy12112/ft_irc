@@ -1,5 +1,6 @@
 #include "newServer.hpp"
 
+// Handles INVITE command: invites user to +i channel
 void Server::Invite(std::string cmd, Client &cli)
 {
 	std::istringstream iss(cmd.substr(7));

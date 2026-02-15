@@ -1,5 +1,6 @@
 #include "newServer.hpp"
 
+// Handles NICK command: sets or changes client nickname
 void    Server::Nick(std::string cmd, Client &cli)
 {
     std::istringstream iss(cmd.substr(5));

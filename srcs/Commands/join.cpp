@@ -1,5 +1,6 @@
 #include "newServer.hpp"
 
+// Handles JOIN command: joins or creates channel
 void	Server::Join(std::string cmd, Client &cli)
 {
 	std::string host = _hostname;

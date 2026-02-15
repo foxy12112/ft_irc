@@ -47,6 +47,7 @@ Client &Client::operator=(const Client &other)
 	return (*this);
 }
 
+// Disconnects client and closes socket
 void	Client::disconnect()
 {
 	if (_isConnected && _clientFd != -1)
@@ -54,12 +55,11 @@ void	Client::disconnect()
 	_isConnected = false;
 }
 
+// Receives data from client socket, appends to input buffer
 int		Client::receive(Client Sender)
 {
 	if (_clientFd < 0)
 		return (-1);
-	//if (_channelIndex == Sender._channelIndex)
-	//{
 	Sender.getAuth();
 	char buf[512];
 	ssize_t bytes = recv(_clientFd, buf, sizeof(buf) - 1, 0);
@@ -78,10 +78,9 @@ int		Client::receive(Client Sender)
 	else
 		return (-1);
 	return (static_cast<int>(bytes));
-	//}
-	// return(0);
 }
 
+// Extracts next complete IRC command from input buffer
 bool	Client::extractNextCommand(std::string &cmd)
 {
 	size_t pos = _inBuffer.find("\n");
@@ -94,11 +93,13 @@ bool	Client::extractNextCommand(std::string &cmd)
 	return (true);
 }
 
+// Queues a response message to output buffer
 void	Client::queueResponse(const std::string &resp)
 {
 	_outBuffer += resp;
 }
 
+// Sends data from output buffer to client
 bool	Client::flushSend()
 {
 	if (_clientFd < 0 || _outBuffer.empty())
@@ -110,6 +111,7 @@ bool	Client::flushSend()
 	return (_outBuffer.empty());
 }
 
+// Checks if there is data pending to send
 bool	Client::hasDataToSend()
 {
 	return (!_outBuffer.empty());

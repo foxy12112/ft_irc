@@ -1,5 +1,6 @@
 #include "newServer.hpp"
 
+// Handles WHOIS command: queries user information
 void	Server::Whois(std::string cmd, Client &cli)
 {
 	std::string host = _hostname;

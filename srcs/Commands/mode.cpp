@@ -1,5 +1,6 @@
 #include "newServer.hpp"
 
+// Handles MODE command: sets channel modes (-/+ i/t/k/o/l)
 void	Server::Mode(std::string cmd, Client &cli)
 {
 	std::istringstream iss(cmd.substr(5));

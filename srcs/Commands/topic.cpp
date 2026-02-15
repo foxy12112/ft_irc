@@ -1,5 +1,6 @@
 #include "newServer.hpp"
 
+// Handles TOPIC command: views or sets channel topic
 void	Server::Topic(std::string cmd, Client &cli)
 {
 	std::string host = _hostname;

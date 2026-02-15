@@ -69,7 +69,6 @@ class Server
 		void	Mode(std::string cmd, Client &cli);
 		void	Topic(std::string cmd, Client &cli);
 		void	Kick(std::string cmd, Client &cli);
-		void	wasInvited(std::string cmd, Client &cli);
 		void	Invite(std::string cmd, Client &cli);
 		void	Join(std::string cmd, Client &cli);
 		void	Nick(std::string cmd, Client &cli);

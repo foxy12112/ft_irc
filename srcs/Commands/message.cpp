@@ -1,5 +1,6 @@
 #include "newServer.hpp"
 
+// Handles PRIVMSG command: sends messages to channels/users
 void	Server::Message(std::string cmd, Client &cli)
 {
 	std::string host = _hostname;
