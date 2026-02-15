@@ -2,6 +2,7 @@
 
 void Server::Kick(std::string cmd, Client &cli)
 {
+	std::string host = _hostname;
 	std::string param = cmd.substr(5); // Remove "KICK "
 	std::istringstream iss(param);
 	std::string channel;
@@ -18,13 +19,13 @@ void Server::Kick(std::string cmd, Client &cli)
 
 	if (channel.empty() || targets.empty())
 	{
-		cli.queueResponse(":server 461 KICK :Not enough parameters\r\n");
+		cli.queueResponse(":" + host + " 461 KICK :Not enough parameters\r\n");
 		return;
 	}
 	// Validate channel format
 	if (channel[0] != '#')
 	{
-		cli.queueResponse(":server 403 " + cli.getNickName() + " " + channel + " :No such channel\r\n");
+		cli.queueResponse(":" + host + " 403 " + cli.getNickName() + " " + channel + " :No such channel\r\n");
 		return;
 	}
 
@@ -32,17 +33,17 @@ void Server::Kick(std::string cmd, Client &cli)
 	int channelIndex = findChannel(channel);
 	if (channelIndex == -1)
 	{
-		cli.queueResponse("403 " + cli.getNickName() + " " + channel + " :No such channel\r\n");
+		cli.queueResponse(":" + host + " 403 " + cli.getNickName() + " " + channel + " :No such channel\r\n");
 		return;
 	}
 	if (!_channels[channelIndex].hasMember(cli.getFd()))
 	{
-		cli.queueResponse("442 " + cli.getNickName() + " " + channel + " :You're not on that channel\r\n");
+		cli.queueResponse(":" + host + " 442 " + cli.getNickName() + " " + channel + " :You're not on that channel\r\n");
 		return;
 	}
 	if (!_channels[channelIndex].isOperator(cli.getFd()))
 	{
-		cli.queueResponse(":server 482 " + channel + " :You're not channel operator\r\n");
+		cli.queueResponse(":" + host + " 482 " + channel + " :You're not channel operator\r\n");
 		return;
 	}
 
@@ -67,12 +68,12 @@ void Server::Kick(std::string cmd, Client &cli)
 			Client &kickedClient = findClient(target);
 			if (!_channels[channelIndex].hasMember(kickedClient.getFd()))
 			{
-				cli.queueResponse("441 " + cli.getNickName() + " " + target + " " + channel + " :They aren't on that channel\r\n");
+				cli.queueResponse(":" + host + " 441 " + cli.getNickName() + " " + target + " " + channel + " :They aren't on that channel\r\n");
 				continue;
 			}
 			
 			// Build KICK message with full prefix
-			std::string kickPrefix = ":" + cli.getNickName() + "!~" + cli.getUserName() + "@127.0.0.1";
+			std::string kickPrefix = ":" + cli.getNickName() + "!~" + cli.getUserName() + "@" + host;
 			std::string kickMsg = kickPrefix + " KICK " + channel + " " + target + " :" + reason + "\r\n";
 
 			// First, remove from channel membership
@@ -81,11 +82,11 @@ void Server::Kick(std::string cmd, Client &cli)
 			sendToChannel(kickMsg, channelIndex);
 		// Deliver explicit KICK and NOTICE to the kicked user
 		kickedClient.queueResponse(kickMsg);
-		kickedClient.queueResponse(":server NOTICE " + kickedClient.getNickName() + " :You were kicked from " + channel + " (" + reason + ")\r\n");
+		kickedClient.queueResponse(":" + host + " NOTICE " + kickedClient.getNickName() + " :You were kicked from " + channel + " (" + reason + ")\r\n");
 		}
 		catch (...)
 		{
-			cli.queueResponse(":server 401 " + cli.getNickName() + " " + target + " :No such nick\r\n");
+			cli.queueResponse(":" + host + " 401 " + cli.getNickName() + " " + target + " :No such nick\r\n");
 		}
 	}
 }

@@ -14,6 +14,7 @@ Client::Client(const Client &other)
 	_nickName = other._nickName;
 	_userName = other._userName;
 	_realName = other._realName;
+	_hostname = other._hostname;
 	_isAuthenticated = other._isAuthenticated;
 	_isConnected = other._isConnected;
 	_isServerOp = other._isServerOp;
@@ -34,6 +35,7 @@ Client &Client::operator=(const Client &other)
 		_nickName = other._nickName;
 		_userName = other._userName;
 		_realName = other._realName;
+		_hostname = other._hostname;
 		_isAuthenticated = other._isAuthenticated;
 		_isConnected = other._isConnected;
 		_isServerOp = other._isServerOp;
@@ -65,7 +67,7 @@ int		Client::receive(Client Sender)
 	{
 		if (_inBuffer.size() + bytes > 512) // RFC max message size
 		{
-			queueResponse(":server 500 :Input too long\r\n");
+			queueResponse(":" + _hostname + " 500 :Input too long\r\n");
 			return (bytes);
 		}
 		buf[bytes] = '\0';

@@ -17,6 +17,7 @@ class Client
 		std::string	_nickName;
 		std::string	_userName;
 		std::string	_realName;
+		std::string	_hostname;
 		bool		_isAuthenticated;
 		bool		_isConnected;
 		bool		_isServerOp;
@@ -34,7 +35,13 @@ class Client
 		}
 
 		Client(int fd)
-			: _clientFd(fd), _index(-1), _inBuffer(), _outBuffer(), _nickName(), _userName(), _realName(),
+			: _clientFd(fd), _index(-1), _inBuffer(), _outBuffer(), _nickName(), _userName(), _realName(), _hostname(),
+				_isAuthenticated(false), _isConnected(true), _isServerOp(false), _channelIndex(-1), _invitedIndex(-1), _invitedClient(), _wasInvited(false)
+		{
+		}
+
+		Client(int fd, std::string hostname)
+			: _clientFd(fd), _index(-1), _inBuffer(), _outBuffer(), _nickName(), _userName(), _realName(), _hostname(hostname),
 				_isAuthenticated(false), _isConnected(true), _isServerOp(false), _channelIndex(-1), _invitedIndex(-1), _invitedClient(), _wasInvited(false)
 		{
 		}
@@ -55,6 +62,7 @@ class Client
 		std::string		&getNickName(){return _nickName;}
 		std::string		&getUserName(){return _userName;}
 		std::string		&getRealName(){return _realName;}
+		std::string		&getHostName(){return _hostname;}
 		std::string		&getInvitedClient(){return _invitedClient;}
 		bool			getInvited(){return _wasInvited;}
 
@@ -72,6 +80,7 @@ class Client
 		void			setNickName(std::string nickname){_nickName = nickname;}
 		void			setUserName(std::string username){_userName = username;}
 		void			setRealName(std::string realname){_realName = realname;}
+		void			setHostName(std::string hostname){_hostname = hostname;}
 		void			setInvitedClient(std::string client){_invitedClient = client;}
 		void			setWasInvited(bool status){_wasInvited = status;}
 		//true functions

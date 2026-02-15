@@ -45,6 +45,7 @@ class Server
 		int	_sock_fd;
 		int	_port;
 		std::string _password;
+		std::string _hostname;
 		std::map<int, Client> _clients;
 		std::map<int, Channel> _channels;
 

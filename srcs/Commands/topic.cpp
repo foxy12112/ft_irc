@@ -2,12 +2,13 @@
 
 void	Server::Topic(std::string cmd, Client &cli)
 {
+	std::string host = _hostname;
 	std::string param;
 	int channelIndex = cli.getChannelIndex();
 
 	if (_channels.find(channelIndex) == _channels.end() || !_channels[channelIndex].hasMember(cli.getFd()))
 	{
-		cli.queueResponse(":server 442 " + (_channels.find(channelIndex) != _channels.end() ? _channels[channelIndex].getName() : std::string("*")) + " :You're not on that channel\r\n");
+		cli.queueResponse(":" + host + " 442 " + (_channels.find(channelIndex) != _channels.end() ? _channels[channelIndex].getName() : std::string("*")) + " :You're not on that channel\r\n");
 		return;
 	}
 	
@@ -22,7 +23,7 @@ void	Server::Topic(std::string cmd, Client &cli)
 	
 	if (!canModifyTopic)
 	{
-		cli.queueResponse(":server 482 " + _channels[channelIndex].getName() + " :You're not channel operator\r\n");
+		cli.queueResponse(":" + host + " 482 " + _channels[channelIndex].getName() + " :You're not channel operator\r\n");
 		return;
 	}
 
@@ -31,11 +32,11 @@ void	Server::Topic(std::string cmd, Client &cli)
 	if (topicText == "-delete")
 	{
 		_channels[channelIndex].setTopic("");
-		sendToChannel(":" + cli.getNickName() + "!~" + cli.getUserName() + "@127.0.0.1 TOPIC " + _channels[channelIndex].getName() + " :\r\n", channelIndex);
+		sendToChannel(":" + cli.getNickName() + "!~" + cli.getUserName() + "@" + host + " TOPIC " + _channels[channelIndex].getName() + " :\r\n", channelIndex);
 	}
 	else
 	{
 		_channels[channelIndex].setTopic(topicText);
-		sendToChannel(":" + cli.getNickName() + "!~" + cli.getUserName() + "@127.0.0.1 TOPIC " + _channels[channelIndex].getName() + " :" + topicText + "\r\n", channelIndex);
+		sendToChannel(":" + cli.getNickName() + "!~" + cli.getUserName() + "@" + host + " TOPIC " + _channels[channelIndex].getName() + " :" + topicText + "\r\n", channelIndex);
 	}
 }

@@ -2,6 +2,7 @@
 
 void	Server::Whois(std::string cmd, Client &cli)
 {
+	std::string host = _hostname;
 	// Strictly parse WHOIS: only one nickname allowed
 	size_t spacePos = cmd.find(' ');
 	std::string param = (spacePos == std::string::npos || spacePos + 1 >= cmd.size()) ? std::string() : cmd.substr(spacePos + 1);
@@ -9,11 +10,11 @@ void	Server::Whois(std::string cmd, Client &cli)
 	std::string target, extra;
 	iss >> target >> extra;
 	if (target.empty()) {
-		cli.queueResponse(":server 431 " + cli.getNickName() + " :No nickname given\r\n");
+		cli.queueResponse(":" + host + " 431 " + cli.getNickName() + " :No nickname given\r\n");
 		return;
 	}
 	if (!extra.empty()) {
-		cli.queueResponse(":server 461 WHOIS :Too many parameters\r\n");
+		cli.queueResponse(":" + host + " 461 WHOIS :Too many parameters\r\n");
 		return;
 	}
 	Client *targetCli = NULL;
@@ -21,15 +22,15 @@ void	Server::Whois(std::string cmd, Client &cli)
 		Client &c = findClient(target);
 		targetCli = &c;
 	} catch (std::exception &e) {
-		cli.queueResponse(":server 401 " + cli.getNickName() + " " + target + " :No such nick\r\n");
+		cli.queueResponse(":" + host + " 401 " + cli.getNickName() + " " + target + " :No such nick\r\n");
 		return;
 	}
 	// RPL_WHOISUSER 311 (fix real name field)
 	std::string tn = targetCli->getNickName();
 	std::string tu = targetCli->getUserName();
 	std::string tr = targetCli->getRealName();
-	std::string host = "example.com";
-	cli.queueResponse(":server 311 " + cli.getNickName() + " " + tn + " " + tu + " " + host + " * :" + tr + "\r\n");
+	std::string hostname = host;
+	cli.queueResponse(":" + host + " 311 " + cli.getNickName() + " " + tn + " " + tu + " " + hostname + " * :" + tr + "\r\n");
 
 	// RPL_WHOISCHANNELS 319 - list channels the user is in
 	std::string chlist;
@@ -40,12 +41,12 @@ void	Server::Whois(std::string cmd, Client &cli)
 			chlist += it->second.getName();
 		}
 	}
-	cli.queueResponse(":server 319 " + cli.getNickName() + " " + tn + " :" + chlist + "\r\n");
+	cli.queueResponse(":" + host + " 319 " + cli.getNickName() + " " + tn + " :" + chlist + "\r\n");
 
 	// RPL_WHOISOP 313 if operator
 	if (targetCli->getServerOp())
-		cli.queueResponse(":server 313 " + cli.getNickName() + " " + tn + " :is an IRC operator\r\n");
+		cli.queueResponse(":" + host + " 313 " + cli.getNickName() + " " + tn + " :is an IRC operator\r\n");
 
 	// RPL_ENDOFWHOIS 318
-	cli.queueResponse(":server 318 " + cli.getNickName() + " " + tn + " :End of /WHOIS list\r\n");
+	cli.queueResponse(":" + host + " 318 " + cli.getNickName() + " " + tn + " :End of /WHOIS list\r\n");
 }

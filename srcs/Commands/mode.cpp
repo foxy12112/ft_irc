@@ -6,6 +6,7 @@ void	Server::Mode(std::string cmd, Client &cli)
 	std::string channelName;
 	std::string modeString;
 	iss >> channelName >> modeString;
+	std::string host = _hostname;
 
 	int channelIndex = cli.getChannelIndex();
 	if (!channelName.empty() && channelName[0] == '#')
@@ -17,25 +18,25 @@ void	Server::Mode(std::string cmd, Client &cli)
 	std::map<int, Channel>::iterator chIt = _channels.find(channelIndex);
 	if (chIt == _channels.end())
 	{
-		cli.queueResponse(":server 403 " + cli.getNickName() + " " + channelName + " :No such channel\r\n");
+		cli.queueResponse(":" + host + " 403 " + cli.getNickName() + " " + channelName + " :No such channel\r\n");
 		return;
 	}
 	Channel &channel = chIt->second;
 
 	if (modeString.empty())
 	{
-		cli.queueResponse(":server 461 " + cli.getNickName() + " MODE :Not enough parameters\r\n");
+		cli.queueResponse(":" + host + " 461 " + cli.getNickName() + " MODE :Not enough parameters\r\n");
 		return;
 	}
 
 	if (!channel.hasMember(cli.getFd()))
 	{
-		cli.queueResponse(":server 442 " + cli.getNickName() + " " + channel.getName() + " :You're not on that channel\r\n");
+		cli.queueResponse(":" + host + " 442 " + cli.getNickName() + " " + channel.getName() + " :You're not on that channel\r\n");
 		return;
 	}
 	if (!channel.isOperator(cli.getFd()))
 	{
-		cli.queueResponse(":server 482 " + channel.getName() + " :You're not channel operator\r\n");
+		cli.queueResponse(":" + host + " 482 " + channel.getName() + " :You're not channel operator\r\n");
 		std::cout << "cant do\n";
 		return;
 	}
@@ -136,13 +137,13 @@ void	Server::Mode(std::string cmd, Client &cli)
 	if (unknown)
 	{
 		std::string m(1, unknown);
-		cli.queueResponse(":server 472 " + cli.getNickName() + " " + m + " :is unknown mode char to me\r\n");
+		cli.queueResponse(":" + host + " 472 " + cli.getNickName() + " " + m + " :is unknown mode char to me\r\n");
 		return;
 	}
 
 	if (!modes.empty())
 	{
-		std::string modeMsg = ":" + cli.getNickName() + "!~" + cli.getUserName() + "@127.0.0.1 MODE " + channel.getName() + " " + modes + params + "\r\n";
+		std::string modeMsg = ":" + cli.getNickName() + "!~" + cli.getUserName() + "@" + host + " MODE " + channel.getName() + " " + modes + params + "\r\n";
 		sendToChannel(modeMsg, channelIndex);
 	}
 }

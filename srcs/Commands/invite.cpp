@@ -6,10 +6,11 @@ void Server::Invite(std::string cmd, Client &cli)
 	std::string targetNick;
 	std::string channelName;
 	iss >> targetNick >> channelName;
+	std::string host = _hostname;
 
 	if (targetNick.empty())
 	{
-		cli.queueResponse(":server 461 INVITE :Not enough parameters\r\n");
+		cli.queueResponse(":" + host + " 461 INVITE :Not enough parameters\r\n");
 		return;
 	}
 
@@ -20,7 +21,7 @@ void Server::Invite(std::string cmd, Client &cli)
 	}
 	catch (...)
 	{
-		cli.queueResponse(":server 401 " + cli.getNickName() + " " + targetNick + " :No such nick\r\n");
+		cli.queueResponse(":" + host + " 401 " + cli.getNickName() + " " + targetNick + " :No such nick\r\n");
 		return;
 	}
 
@@ -30,25 +31,25 @@ void Server::Invite(std::string cmd, Client &cli)
 	int chIdx = findChannel(channelName);
 	if (channelName.empty() || chIdx == -1) 
 	{
-		cli.queueResponse(":server 403 " + cli.getNickName() + " " + channelName + " :No such channel\r\n");
+		cli.queueResponse(":" + host + " 403 " + cli.getNickName() + " " + channelName + " :No such channel\r\n");
 		return;
 	}
 
 	if (!_channels[chIdx].hasMember(cli.getFd()))
 	{
-		cli.queueResponse(":server 442 " + channelName + " :You're not on that channel\r\n");
+		cli.queueResponse(":" + host + " 442 " + channelName + " :You're not on that channel\r\n");
 		return;
 	}
 
 	if (!_channels[chIdx].isOperator(cli.getFd()))
 	{
-		cli.queueResponse(":server 482 " + channelName + " :You're not channel operator\r\n");
+		cli.queueResponse(":" + host + " 482 " + channelName + " :You're not channel operator\r\n");
 		return;
 	}
 
 	if (_channels[chIdx].hasMember(invitee->getFd()))
 	{
-		cli.queueResponse(":server 443 " + cli.getNickName() + " " + invitee->getNickName() + " " + channelName + " :is already on channel\r\n");
+		cli.queueResponse(":" + host + " 443 " + cli.getNickName() + " " + invitee->getNickName() + " " + channelName + " :is already on channel\r\n");
 		return;
 	}
 
@@ -56,8 +57,7 @@ void Server::Invite(std::string cmd, Client &cli)
 	invitee->setInvitedClient(cli.getUserName());
 	invitee->setWasInvited(true);
 
-	std::string host = "127.0.0.1";
-	cli.queueResponse(":server 341 " + cli.getNickName() + " " + invitee->getNickName() + " " + channelName + "\r\n");
+	cli.queueResponse(":" + host + " 341 " + cli.getNickName() + " " + invitee->getNickName() + " " + channelName + "\r\n");
 	std::string prefix = ":" + cli.getNickName() + "!~" + cli.getUserName() + "@" + host;
 	invitee->queueResponse(prefix + " INVITE " + invitee->getNickName() + " :" + channelName + "\r\n");
 }

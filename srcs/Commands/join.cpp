@@ -2,6 +2,7 @@
 
 void	Server::Join(std::string cmd, Client &cli)
 {
+	std::string host = _hostname;
 	std::istringstream iss(cmd.substr(5));
 	std::string channel;
 	std::string password;
@@ -9,7 +10,7 @@ void	Server::Join(std::string cmd, Client &cli)
 
 	if (channel.empty())
 	{
-		cli.queueResponse(":server 461 JOIN :Not enough parameters\r\n");
+		cli.queueResponse(":" + host + " 461 JOIN :Not enough parameters\r\n");
 		return;
 	}
 
@@ -17,14 +18,14 @@ void	Server::Join(std::string cmd, Client &cli)
 
 	if (channelIndex == -1)
 	{
-		cli.queueResponse(":server 403 " + cli.getNickName() + " " + channel + " :No such channel\r\n");
+		cli.queueResponse(":" + host + " 403 " + cli.getNickName() + " " + channel + " :No such channel\r\n");
 		return ;
 	}
 
 	// Already on channel, will never happen from irssi as it handles this case on the client program
 	if (_channels[channelIndex].hasMember(cli.getFd()))
 	{
-		cli.queueResponse(":server 443 " + cli.getNickName() + " " + cli.getNickName() + " " + channel + " :is already on channel\r\n");
+		cli.queueResponse(":" + host + " 443 " + cli.getNickName() + " " + cli.getNickName() + " " + channel + " :is already on channel\r\n");
 		return ;
 	}
 
@@ -32,7 +33,7 @@ void	Server::Join(std::string cmd, Client &cli)
 	{
 		if (!cli.getInvited() || cli.getInvitedIndex() != channelIndex)
 		{
-			cli.queueResponse(":server 473 " + cli.getNickName() + " " + channel + " :Cannot join channel (+i)\r\n");
+			cli.queueResponse(":" + host + " 473 " + cli.getNickName() + " " + channel + " :Cannot join channel (+i)\r\n");
 			return ;
 		}
 		cli.setWasInvited(false);
@@ -42,7 +43,7 @@ void	Server::Join(std::string cmd, Client &cli)
 	int currentUsers = _channels[channelIndex].members().size();
 	if (_channels[channelIndex].getLimit() != -1 && currentUsers >= _channels[channelIndex].getLimit())
 	{
-		cli.queueResponse(":server 471 " + cli.getNickName() + " " + channel + " :Cannot join channel (+l)\r\n");
+		cli.queueResponse(":" + host + " 471 " + cli.getNickName() + " " + channel + " :Cannot join channel (+l)\r\n");
 		return ;
 	}
 	
@@ -50,7 +51,7 @@ void	Server::Join(std::string cmd, Client &cli)
 	{
 		if (password != _channels[channelIndex].getPass())
 		{
-			cli.queueResponse(":server 475 " + cli.getNickName() + " " + channel + " :Cannot join channel (+k)\r\n");
+			cli.queueResponse(":" + host + " 475 " + cli.getNickName() + " " + channel + " :Cannot join channel (+k)\r\n");
 			return ;
 		}
 	}

@@ -2,6 +2,7 @@
 
 void	Server::Message(std::string cmd, Client &cli)
 {
+	std::string host = _hostname;
 	std::string param = cmd.substr(8);
 	std::istringstream iss(param);
 	std::string target;
@@ -9,33 +10,33 @@ void	Server::Message(std::string cmd, Client &cli)
 	ssize_t msg_pos = param.find(':');
 	if (target.empty())
 	{
-		cli.queueResponse(":server 411 PRIVMSG :No recipient given\r\n");
+		cli.queueResponse(":" + host + " 411 PRIVMSG :No recipient given\r\n");
 		return;
 	}
 	if (msg_pos == (ssize_t)std::string::npos)
 	{
-		cli.queueResponse(":server 412 :No text to send\r\n");
+		cli.queueResponse(":" + host + " 412 :No text to send\r\n");
 		return;
 	}
 	std::string message = param.substr(msg_pos + 1);
 	if (message.empty())
 	{
-		cli.queueResponse(":server 412 :No text to send\r\n");
+		cli.queueResponse(":" + host + " 412 :No text to send\r\n");
 		return;
 	}
-	std::string prefix = ":" + cli.getNickName() + "!~" + cli.getUserName() + "@example.com";
+	std::string prefix = ":" + cli.getNickName() + "!~" + cli.getUserName() + "@" + host;
 	if (!target.empty() && target[0] == '#')
 	{
 		int chidx = findChannel(target);
 		if (chidx == -1)
 		{
-			cli.queueResponse(":server 403 " + cli.getNickName() + " " + target + " :No such channel\r\n");
+			cli.queueResponse(":" + host + " 403 " + cli.getNickName() + " " + target + " :No such channel\r\n");
 			return;
 		}
 		// Prevent non-members from speaking in the channel using membership set
 		if (!_channels[chidx].hasMember(cli.getFd()))
 		{
-			cli.queueResponse(":server 404 " + target + " :Cannot send to channel\r\n");
+			cli.queueResponse(":" + host + " 404 " + target + " :Cannot send to channel\r\n");
 			return;
 		}
 		std::string out = prefix + " PRIVMSG " + target + " :" + message + "\r\n";
@@ -70,6 +71,6 @@ void	Server::Message(std::string cmd, Client &cli)
 			}
 		}
 		if (!found)
-			cli.queueResponse(":server 401 " + cli.getNickName() + " " + target + " :No such nick\r\n");
+			cli.queueResponse(":" + host + " 401 " + cli.getNickName() + " " + target + " :No such nick\r\n");
 	}
 }

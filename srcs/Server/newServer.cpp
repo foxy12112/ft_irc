@@ -11,10 +11,7 @@ void Server::sendWelcome(Client &cli) {
 	static std::set<int> welcomed;
 	if (welcomed.count(cli.getFd())) return;
 	welcomed.insert(cli.getFd());
-	char hostname[256];
-	if (gethostname(hostname, sizeof(hostname)) != 0)
-		strncpy(hostname, "localhost", sizeof(hostname));
-	std::string host(hostname);
+	std::string host = _hostname;
 	cli.queueResponse(":" + host + " 001 " + cli.getNickName() + " :Welcome to the IRC server " + cli.getNickName() + "!" + cli.getUserName() + "@" + host + "\r\n");
 	cli.queueResponse(":" + host + " 002 " + cli.getNickName() + " :Your host is " + host + ", running version 1.0\r\n");
 	cli.queueResponse(":" + host + " 003 " + cli.getNickName() + " :This server was created today\r\n");
@@ -51,6 +48,10 @@ Server::Server(int port, const std::string &password)
 	_sock_fd = -1;
 	_port = port;
 	_password = password;
+	char hostname[256];
+	if (gethostname(hostname, sizeof(hostname)) != 0)
+		strncpy(hostname, "localhost", sizeof(hostname));
+	_hostname = hostname;
 
 	signal(SIGPIPE, SIG_IGN); // Prevents crash on write to closed socket
 	createSocket();
@@ -94,6 +95,7 @@ bool Server::isNameInUse(const std::string &name, bool checkNick, int requesterF
 
 void	Server::wasInvited(std::string cmd, Client &cli)
 {
+	std::string host = _hostname;
 	if (cmd == "y" || cmd == "accept" || cmd == "yes")
 	{
 		int newIdx = cli.getInvitedIndex();
@@ -109,7 +111,7 @@ void	Server::wasInvited(std::string cmd, Client &cli)
 		}
 		catch (std::exception &)
 		{
-			cli.queueResponse(":server 401 " + cli.getNickName() + " " + cli.getInvitedClient() + " :No such nick\r\n");
+			cli.queueResponse(":" + host + " 401 " + cli.getNickName() + " " + cli.getInvitedClient() + " :No such nick\r\n");
 		}
 	}
 }
@@ -164,11 +166,12 @@ Client	&Server::findClient(std::string client)
 
 void	Server::Commands(std::string cmd, Client &cli)
 {
+	std::string host = _hostname;
 	Command c = stringToCommand(cmd);
 	// if (cli.getInvited() == true)
 	// 	wasInvited(cmd, cli);
 	if (cmd.find("PING") == 0)
-		cli.queueResponse("PONG :server\r\n");
+		cli.queueResponse("PONG :" + host + "\r\n");
 	else
 		switch(c)
 		{
@@ -188,13 +191,14 @@ void	Server::Commands(std::string cmd, Client &cli)
 
 void	Server::WelcomeCommands(std::string cmd, Client &cli)
 {
+	std::string host = _hostname;
 	if (cmd.find("PASS ") == 0 && !cli.getAuth())
 	{
 		if (cmd.substr(5) == _password)
 			cli.setAuth(true);
 		else
 		{
-			cli.queueResponse(":server 464 " + cli.getNickName() + " :Password incorrect\r\n");
+			cli.queueResponse(":" + host + " 464 " + cli.getNickName() + " :Password incorrect\r\n");
 			cli.setCon(false);
 			cli.disconnect(); // Immediately close the socket
 		}
@@ -257,7 +261,7 @@ void Server::run()
 					fcntl(client_fd, F_SETFL, O_NONBLOCK);
 					struct pollfd pfd = {client_fd, POLLIN, 0};
 					fds.push_back(pfd);
-					_clients[client_fd] = Client(client_fd);
+					_clients[client_fd] = Client(client_fd, _hostname);
 				}
 				else
 				{
@@ -279,7 +283,7 @@ void Server::run()
 						if (cmd.empty())
 							continue;
 						if (cmd.find("CAP LS") == 0) //client will send request for a list of available capabilities
-							cli.queueResponse(":server CAP * LS :\r\n"); //send empty capability list since we dont have any
+							cli.queueResponse(":" + _hostname + " CAP * LS :\r\n"); //send empty capability list since we dont have any
 						if (cmd.find("NICK ") == 0)
 						{
 							Nick(cmd, cli);
@@ -288,18 +292,14 @@ void Server::run()
 						
 						if (cmd.find("CAP END") == 0 && !cli.getNickName().empty() && !cli.getUserName().empty() && cli.getAuth())
 						{
-							std::string host = "127.0.0.1"; // Dynamic on demand, used to show use in 001 response
-							cli.queueResponse(":" + host + " 001 " + cli.getNickName() + " :Welcome to the IRC server " + cli.getNickName() + "!" + cli.getUserName() + "@" + host + "\r\n");
-							cli.queueResponse(":server 002 " + cli.getNickName() + " :Your host is servername, running version 1.0\r\n");
-							cli.queueResponse(":server 003 " + cli.getNickName() + " :This server was created today\r\n");
-							cli.queueResponse(":server 004 " + cli.getNickName() + " servername 1.0 * *\r\n");
+							sendWelcome(cli);
 						}
 						if (!cli.getAuth() || cli.getUserName().empty())
 							WelcomeCommands(cmd, cli);
 						else if (cli.getAuth() && !cli.getUserName().empty())
 							Commands(cmd, cli);
 						else if (cli.getAuth() == false && cli.getUserName().empty())
-							cli.queueResponse(":server 464: Authenticate first\r\n");
+							cli.queueResponse(":" + _hostname + " 464: Authenticate first\r\n");
 					}
 				}
 			}

@@ -2,6 +2,7 @@
 
 void	Server::User(std::string cmd, Client &cli)
 {
+	std::string host = _hostname;
 	std::string param = cmd.substr(5);
 	std::string user, unused1, unused2, realname;
 	size_t colon = param.find(':');
@@ -15,15 +16,15 @@ void	Server::User(std::string cmd, Client &cli)
 	iss >> extra;
 
 	if (!cli.getUserName().empty()) {
-		cli.queueResponse(":server 462 :You may not reregister\r\n");
+		cli.queueResponse(":" + host + " 462 :You may not reregister\r\n");
 		return;
 	}
 	if (user.empty() || realname.empty()) {
-		cli.queueResponse(":server 461 USER :Not enough parameters\r\n");
+		cli.queueResponse(":" + host + " 461 USER :Not enough parameters\r\n");
 		return;
 	}
 	if (!extra.empty()) {
-		cli.queueResponse(":server 461 USER :Too many parameters\r\n");
+		cli.queueResponse(":" + host + " 461 USER :Too many parameters\r\n");
 		return;
 	}
 	if (isNameInUse(user, false, cli.getFd())) {
@@ -35,9 +36,9 @@ void	Server::User(std::string cmd, Client &cli)
 		cli.setUserName(newUser);
 		cli.setRealName(realname);
 		if (!cli.getNickName().empty())
-			cli.queueResponse(":server NOTICE " + cli.getNickName() + " :Your username was changed to " + newUser + " because the requested name was already in use\r\n");
+			cli.queueResponse(":" + host + " NOTICE " + cli.getNickName() + " :Your username was changed to " + newUser + " because the requested name was already in use\r\n");
 		else
-			cli.queueResponse(":server NOTICE * :Your username was changed to " + newUser + " because the requested name was already in use\r\n");
+			cli.queueResponse(":" + host + " NOTICE * :Your username was changed to " + newUser + " because the requested name was already in use\r\n");
 		return;
 	}
 	std::cout << "[user set] fd=" << cli.getFd() << " -> user='" << user << "' realname='" << realname << "'\n";

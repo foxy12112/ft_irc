@@ -2,6 +2,7 @@
 
 void	Server::oper(std::string cmd, Client &cli)
 {
+	std::string host = _hostname;
 	std::string param = cmd.substr(5);
 	std::string name;
 	std::string password;
@@ -10,7 +11,7 @@ void	Server::oper(std::string cmd, Client &cli)
 	iss >> password;
 	if (name.empty() || password.empty())
 	{
-		cli.queueResponse(":server 461 OPER :Not enough parameters\r\n");
+		cli.queueResponse(":" + host + " 461 OPER :Not enough parameters\r\n");
 		return;
 	}
 	Client *clintPtr = NULL;
@@ -21,13 +22,13 @@ void	Server::oper(std::string cmd, Client &cli)
 	}
 	catch (std::exception &)
 	{
-		cli.queueResponse(":server 401 " + cli.getNickName() + " " + name + " :No such nick\r\n");
+		cli.queueResponse(":" + host + " 401 " + cli.getNickName() + " " + name + " :No such nick\r\n");
 		return;
 	}
 	// If the target client is already a server operator, just inform and exit
 	if (clintPtr->getServerOp() == true)
 	{
-		clintPtr->queueResponse(":server 381 " + clintPtr->getNickName() + " :You already have IRC operator permissions\r\n");
+		clintPtr->queueResponse(":" + host + " 381 " + clintPtr->getNickName() + " :You already have IRC operator permissions\r\n");
 		return;
 	}
 	if (password == "operpass")
@@ -38,7 +39,7 @@ void	Server::oper(std::string cmd, Client &cli)
 			it->second.setOperator(clintPtr->getFd(), newStatus);
 	}
 	else
-		clintPtr->queueResponse(":server 464 "+clintPtr->getNickName()+" :Password incorrect\r\n");
+		clintPtr->queueResponse(":" + host + " 464 "+clintPtr->getNickName()+" :Password incorrect\r\n");
 	if (clintPtr->getServerOp() == true)
-		clintPtr->queueResponse(":server 381 " + clintPtr->getNickName() + " :You are now an IRC operator\r\n");
+		clintPtr->queueResponse(":" + host + " 381 " + clintPtr->getNickName() + " :You are now an IRC operator\r\n");
 }
