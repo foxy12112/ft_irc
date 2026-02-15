@@ -35,4 +35,7 @@ void	Server::User(std::string cmd, Client &cli)
 	}
 	std::cout << "[user set] fd=" << cli.getFd() << " -> user='" << user << "'\n";
 	cli.setUserName(user);
+	// After setting user, check registration and send welcome numerics
+	Server *srv = this;
+	srv->sendWelcome(cli);
 }

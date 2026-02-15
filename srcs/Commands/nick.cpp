@@ -25,4 +25,7 @@ void    Server::Nick(std::string cmd, Client &cli)
     std::cout << "[nick set] fd=" << cli.getFd() << " -> nick='" << nick << "'\n";
     sendToChannel(":"+cli.getNickName()+"!~"+cli.getUserName()+"@127.0.0.1 NICK "+nick, cli.getChannelIndex());
     cli.setNickName(nick);
+    // After setting nick, check registration and send welcome numerics
+    Server *srv = this;
+    srv->sendWelcome(cli);
 }

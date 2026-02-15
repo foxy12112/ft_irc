@@ -1,4 +1,25 @@
+// Move include to top
 #include "newServer.hpp"
+
+// Helper to send full welcome numerics
+void Server::sendWelcome(Client &cli) {
+	// Prevent duplicate welcomes
+	if (!cli.getAuth() || cli.getUserName().empty() || cli.getNickName().empty())
+		return;
+	if (cli.getCon() == false)
+		return;
+	static std::set<int> welcomed;
+	if (welcomed.count(cli.getFd())) return;
+	welcomed.insert(cli.getFd());
+	char hostname[256];
+	if (gethostname(hostname, sizeof(hostname)) != 0)
+		strncpy(hostname, "localhost", sizeof(hostname));
+	std::string host(hostname);
+	cli.queueResponse(":" + host + " 001 " + cli.getNickName() + " :Welcome to the IRC server " + cli.getNickName() + "!" + cli.getUserName() + "@" + host + "\r\n");
+	cli.queueResponse(":" + host + " 002 " + cli.getNickName() + " :Your host is " + host + ", running version 1.0\r\n");
+	cli.queueResponse(":" + host + " 003 " + cli.getNickName() + " :This server was created today\r\n");
+	cli.queueResponse(":" + host + " 004 " + cli.getNickName() + " " + host + " 1.0 * *\r\n");
+}
 
 void Server::createSocket()
 {
@@ -175,16 +196,17 @@ void	Server::WelcomeCommands(std::string cmd, Client &cli)
 		{
 			cli.queueResponse(":server 464 " + cli.getNickName() + " :Password incorrect\r\n");
 			cli.setCon(false);
+			cli.disconnect(); // Immediately close the socket
 		}
 	}
 	else if (cli.getUserName().empty())
 		if (cmd.find("USER ") == 0)
 			User(cmd, cli);
-	if ((!_password.empty() ? cli.getAuth() : true) && !cli.getUserName().empty() && !cli.getNickName().empty())
-	{
-		std::cout << "[welcome] fd=" << cli.getFd() << " nick='" << cli.getNickName() << "' user='" << cli.getUserName() << "'\n";
-		cli.queueResponse(":server 001 " + cli.getNickName() + " :Welcome to the IRC server\r\n");
-	}
+	       if ((!_password.empty() ? cli.getAuth() : true) && !cli.getUserName().empty() && !cli.getNickName().empty())
+	       {
+		       std::cout << "[welcome] fd=" << cli.getFd() << " nick='" << cli.getNickName() << "' user='" << cli.getUserName() << "\n";
+		       sendWelcome(cli);
+	       }
 }
 
 void	Server::createChannel()

@@ -83,6 +83,7 @@ class Server
 		int		findChannel(std::string channel);
 		Client	&findClient(std::string client);
 		void	createChannel();
+		void	sendWelcome(Client &cli);
 
 };
 
