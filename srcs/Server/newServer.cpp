@@ -208,6 +208,20 @@ void Server::run()
 			throw std::runtime_error("Poll failed");
 		for (size_t i = 0; i < fds.size(); i++)
 		{
+			if (fds[i].revents & (POLLERR | POLLHUP | POLLNVAL))
+			{
+				if (fds[i].fd != _sock_fd)
+				{
+					Client &cli = _clients[fds[i].fd];
+					cli.setCon(false);
+					std::cout << "Client fd=" << fds[i].fd << " disconnected (poll error)" << std::endl;
+					cli.disconnect();
+					_clients.erase(fds[i].fd);
+					fds.erase(fds.begin() + i);
+					--i;
+					continue ;
+				}
+			}
 			if (fds[i].revents & POLLIN)
 			{
 				if (fds[i].fd == _sock_fd)

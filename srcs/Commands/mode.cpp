@@ -35,7 +35,7 @@ void	Server::Mode(std::string cmd, Client &cli)
 	}
 	if (!channel.isOperator(cli.getFd()))
 	{
-		cli.queueResponse(":server 482 " + cli.getNickName() + " " + channel.getName() + " :You're not channel operator\r\n");
+		cli.queueResponse(":server 482 " + channel.getName() + " :You're not channel operator\r\n");
 		std::cout << "cant do\n";
 		return;
 	}

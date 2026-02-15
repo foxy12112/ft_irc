@@ -73,8 +73,8 @@ int		Client::receive(Client Sender)
 	}
 	else if (bytes == 0)
 		_isConnected = false;
-	else if (errno != EAGAIN && errno != EWOULDBLOCK)
-			_isConnected = false;
+	else
+		return (-1);
 	return (static_cast<int>(bytes));
 	//}
 	// return(0);
@@ -103,12 +103,7 @@ bool	Client::flushSend()
 		return (true);
 	ssize_t sent = send(_clientFd, _outBuffer.c_str(), _outBuffer.size(), 0);
 	if (sent < 0)
-	{
-		if (errno == EAGAIN || errno == EWOULDBLOCK)
-			return (false);
-		_isConnected = false;
 		return (false);
-	}
 	_outBuffer.erase(0, sent);
 	return (_outBuffer.empty());
 }

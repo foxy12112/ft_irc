@@ -3,7 +3,6 @@
 
 #include <string>
 #include <iostream>
-#include <cerrno>
 
 class	Server;
 class	Channel;
