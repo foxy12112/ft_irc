@@ -60,9 +60,8 @@ void	Server::Mode(std::string cmd, Client &cli)
 		}
 		else if (c == 't')
 		{
-			bool enableTopicRestriction = adding ? true : !channel.getTopicOp();
-			channel.setTopicOp(enableTopicRestriction);
-			modes += (enableTopicRestriction ? '+' : '-');
+			channel.setTopicOp(adding);
+			modes += (adding ? '+' : '-');
 			modes += 't';
 		}
 		else if (c == 'k')
