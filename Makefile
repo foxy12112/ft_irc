@@ -54,7 +54,7 @@ CHANNEL			= 	$(addprefix Channel/, $(_CHANNEL))
 _SRCS			= 	main.cpp $(CLIENT) $(SERVER) $(CHANNEL) $(COMMAND)
 SRCS			=	$(addprefix srcs/, $(_SRCS))
 
-OBJS			=	$(SRCS:srcs/%.cpp=bin/%.o)
+OBJS			=	$(SRCS:srcs/%.cpp=obj/%.o)
 
 #################################################################################################
 #											Rules												#
@@ -62,14 +62,14 @@ OBJS			=	$(SRCS:srcs/%.cpp=bin/%.o)
 
 all:			$(NAME)
 
-bin:
-				@echo "\t\t\t$(BLUE) Making bin directory"
-				@mkdir -p bin/Server
-				@mkdir -p bin/Client
-				@mkdir -p bin/Channel
-				@mkdir -p bin/Commands
+obj:
+				@echo "\t\t\t$(BLUE) Making obj directory"
+				@mkdir -p obj/Server
+				@mkdir -p obj/Client
+				@mkdir -p obj/Channel
+				@mkdir -p obj/Commands
 
-bin/%.o:		srcs/%.cpp | bin
+obj/%.o:		srcs/%.cpp | obj
 				@echo "$(GREEN) Compiling $(Compiler) $(CLR_RMV) -c -o $(YELLOW) $@ $(CYAN) $^ $(GREEN) $(CFLAGS) $(GREEN) $(NC)"
 				@$(COMPILER) -c -o $@ $^ $(EXTRA_FLAGS) $(CFLAGS) $(INCLUDES) 2> $(ERROR_FILE) || (cat $(ERROR_FILE) && echo "$(RED)Compilation failed :0\nfailed file: \t\t$(YELLOW)$<$(NC)\n\n" && exit 1$(NC))
 
@@ -78,7 +78,7 @@ $(NAME): $(OBJS)
 				@echo "\t\t\t\t$(RED) compilation success :3$(NC)"
 
 clean:
-				@rm -rf bin
+				@rm -rf obj
 				@rm -f $(ERROR_FILE)
 
 fclean:			clean
